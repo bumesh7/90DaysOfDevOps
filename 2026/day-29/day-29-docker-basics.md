@@ -78,8 +78,18 @@ Stop and remove a container
 
 Task 4: Explore
 
-Run a container in detached mode — what's different?
+Run a container in detached mode — what's different?  -> It will execute in the background and the details will not be shown.
 Give a container a custom name
+<img width="1360" height="625" alt="image" src="https://github.com/user-attachments/assets/c9bfb94e-7c37-4c48-ba36-1bfb30f02e99" />
+
 Map a port from the container to your host
+<img width="736" height="52" alt="image" src="https://github.com/user-attachments/assets/e36ec53b-fe53-4a05-a9c1-7bc1b805a0f3" />
+
 Check logs of a running container
+<img width="1918" height="602" alt="image" src="https://github.com/user-attachments/assets/c25b1325-bead-4b31-80b8-d8a991c3adf9" />
+
+
 Run a command inside a running container
+
+<img width="1606" height="153" alt="image" src="https://github.com/user-attachments/assets/bda42da6-16fc-45a2-b42e-bf95470f1776" />
+
