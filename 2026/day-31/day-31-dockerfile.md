@@ -40,10 +40,69 @@ EXPOSE — document the port
 CMD — default command
 Build and run it. Understand what each line does.
 
+$ vim Dockerfile
+
+FROM nginx:latest
+
+WORKDIR /app
+
+COPY index.html /usr/share/nginx/html/index.html
+
+EXPOSE 80
+
+RUN nginx
+
+CMD ["nginx", "-g", "daemon off;"]
+
+$ docker build -t nginx:v1 .
+$ docker run -d -p 5000:80 nginx:v1
+
+<img width="1755" height="840" alt="image" src="https://github.com/user-attachments/assets/e4204958-05ec-4dfc-af39-3f6bff85c6ba" />
+
+
 Task 3: CMD vs ENTRYPOINT
+
 Create an image with CMD ["echo", "hello"] — run it, then run it with a custom command. What happens?
+
+FROM ubuntu:latest
+CMD ["echo", "hi"]
+
+$ dokcer build -t cmd .
+$ docker run cmd
+<img width="1063" height="535" alt="image" src="https://github.com/user-attachments/assets/6845d951-a574-4b7a-9c15-cd6da2efac90" />
+
+with custom command $ docker run cmd echo bye
+<img width="882" height="207" alt="image" src="https://github.com/user-attachments/assets/52d50539-a1b6-4635-99ae-16fb70679dd1" />
+
+CMD is completely overridden when you provide a command at runtime.
+Default → echo hello
+With custom command → echo bye
+Original CMD is ignored
+
 Create an image with ENTRYPOINT ["echo"] — run it, then run it with additional arguments. What happens?
+
+FROM ubuntu:latest
+ENTRYPOINT ["echo"]
+
+$ dokcer build -t entry .
+$ docker run entry
+
+-> Runs but display empty line and run with arguments it displays.
+<img width="1061" height="441" alt="image" src="https://github.com/user-attachments/assets/71a183d5-d5ce-41a1-9adf-c71dbe75fbdf" />
+
+With ENTRYPOINT, extra arguments are appended, not replaced.
+
 Write in your notes: When would you use CMD vs ENTRYPOINT?
+
+CMD:
+container can do multiple things depending on our input.
+But we need to provide default behavior, but allow flexibility.
+
+Entrypoint:
+We need our container to behave like a specific executable.
+Always want the same main process to run.
+
+
 Task 4: Build a Simple Web App Image
 Create a small static HTML file (index.html) with any content
 Write a Dockerfile that:
@@ -51,6 +110,8 @@ Uses nginx:alpine as base
 Copies your index.html to the Nginx web directory
 Build and tag it my-website:v1
 Run it with port mapping and access it in your browser
+
+
 Task 5: .dockerignore
 Create a .dockerignore file in one of your project folders
 Add entries for: node_modules, .git, *.md, .env
