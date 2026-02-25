@@ -111,12 +111,53 @@ Copies your index.html to the Nginx web directory
 Build and tag it my-website:v1
 Run it with port mapping and access it in your browser
 
+FROM nginx:alpine
+
+WORKDIR /app
+
+RUN rm -rf /usr/share/nginx/html/*
+
+COPY index.html /usr/share/nginx/html/index.html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+
+# -g allows to pass global configuration to nginx
+# daemon off => keep the container alive and forces nginx to run in foreground.
+
+$ docker build -t my-website:v1 .
+$ docker run -d -p 3000:80 my-website:v1
+
+<img width="1918" height="830" alt="image" src="https://github.com/user-attachments/assets/8746130d-78ce-42fc-9748-7ca50358c7ae" />
+
 
 Task 5: .dockerignore
 Create a .dockerignore file in one of your project folders
+$ vim .dockerignore
+
 Add entries for: node_modules, .git, *.md, .env
+
+# Exclude all dependency folders
+node_modules
+
+# Exclude Git repo files
+.git
+
+# Excluse markdown files
+.md
+
+# Exclude all env files
+.env
+
 Build the image — verify that ignored files are not included
+<img width="370" height="267" alt="image" src="https://github.com/user-attachments/assets/d4df5c7a-d9ac-4bc2-97b9-fab633c814ab" />
+
+$ docker build -t my-website:v3 .
+$ docker run -it --rm my-website:v3 sh
+
 Task 6: Build Optimization
+
 Build an image, then change one line and rebuild — notice how Docker uses cache
 Reorder your Dockerfile so that frequently changing lines come last
 Write in your notes: Why does layer order matter for build speed?
