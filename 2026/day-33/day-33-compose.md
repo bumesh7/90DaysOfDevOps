@@ -92,12 +92,26 @@ Task 4: Compose Commands
 Practice and document these:
 
 Start services in detached mode
+$ docker-compose up -d
+
 View running services
+$ docker-compose ps
+
 View logs of all services
+$ docker-compose logs -f
+
 View logs of a specific service
-Stop services without removing
+$ docker-compose logs -f nginx
+
+Stop services without removing (stop service and dont remove containers)
+$ docker-compose stop
+use $ docker-compose start (start the service)
+
 Remove everything (containers, networks)
+$ docker-compose down -v
+
 Rebuild images if you make a change
+$ docker-compose up --build
 
 Task 5: Environment Variables
 Add environment variables directly in your docker-compose.yml
