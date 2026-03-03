@@ -115,11 +115,12 @@ Task 5: Validate Your YAML
     $ yamllint server.yaml
     
     Intentionally break the indentation — what error do you get?
-    <img width="912" height="109" alt="image" src="https://github.com/user-attachments/assets/80b86c10-1db4-4f3b-bfe7-04f828028413" />
-
+    -> Syntax Error
 
     Fix it and validate again
     -> No Error
+
+<img width="912" height="109" alt="image" src="https://github.com/user-attachments/assets/cc62cb48-c628-4429-8af4-986096d1fa2a" />
 
 Task 6: Spot the Difference
 
