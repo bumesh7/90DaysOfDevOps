@@ -26,7 +26,7 @@ Add to person.yaml:
     tools — a list of 5 DevOps tools you know or are learning
     hobbies — a list using the inline format [item1, item2]
 
-$ vim person.yaml
+-> $ vim person.yaml
 
 ```
 name: umesh
@@ -117,8 +117,8 @@ Task 5: Validate Your YAML
     Intentionally break the indentation — what error do you get?
     
     server.yaml
-  1:1       warning  missing document start "---"  (document-start)
-  9:3       error    syntax error: expected <block end>, but found '<scalar>' (syntax)
+    1:1       warning  missing document start "---"  (document-start)
+    9:3       error    syntax error: expected <block end>, but found '<scalar>' (syntax)
 
 
     Fix it and validate again
