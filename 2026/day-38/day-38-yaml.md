@@ -115,10 +115,7 @@ Task 5: Validate Your YAML
     $ yamllint server.yaml
     
     Intentionally break the indentation — what error do you get?
-    
-    server.yaml
-    1:1       warning  missing document start "---"  (document-start)
-    9:3       error    syntax error: expected <block end>, but found '<scalar>' (syntax)
+    <img width="912" height="109" alt="image" src="https://github.com/user-attachments/assets/80b86c10-1db4-4f3b-bfe7-04f828028413" />
 
 
     Fix it and validate again
