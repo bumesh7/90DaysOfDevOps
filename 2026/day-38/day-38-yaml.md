@@ -8,11 +8,12 @@ Create person.yaml that describes yourself with:
     learning (a boolean)
 
 $ vim person.yaml
-
+```
 name: umesh
 role: Devops
 experience_years: 3
 learning: "true"
+```
                     
 
 Verify: Run cat person.yaml — does it look clean? No tabs?
@@ -27,6 +28,7 @@ Add to person.yaml:
 
 $ vim person.yaml
 
+```
 name: umesh
 role: devops
 experience_years: 3
@@ -38,7 +40,7 @@ tools:
   - github actions
   - gitlab
 hobbies: [learning, travelling, movies]
-
+```
 
 Write in your notes: What are the two ways to write a list in YAML?
 Task 3: Nested Objects
