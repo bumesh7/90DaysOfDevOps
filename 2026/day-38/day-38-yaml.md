@@ -43,6 +43,9 @@ hobbies: [learning, travelling, movies]
 ```
 
 Write in your notes: What are the two ways to write a list in YAML?
+
+-> in array by using "-" and "[a, b, c]" 
+
 Task 3: Nested Objects
 
 Create server.yaml that describes a server:
@@ -50,7 +53,24 @@ Create server.yaml that describes a server:
     server with nested keys: name, ip, port
     database with nested keys: host, name, credentials (nested further: user, password)
 
+```
+server:
+    name: myserver
+    ip: 192.17.1.8
+    port: 8080
+database:
+    host: myhost
+    name: mydatabase
+    credentials:
+        user: admin
+        password: password
+```
+
 Verify: Try adding a tab instead of spaces — what happens when you validate it?
+
+-> YAML does not allow tabs for indentation. And va;idation fails.
+
+
 Task 4: Multi-line Strings
 
 In server.yaml, add a startup_script field using:
@@ -58,13 +78,51 @@ In server.yaml, add a startup_script field using:
     The | block style (preserves newlines)
     The > fold style (folds into one line)
 
-Write in your notes: When would you use | vs >?
+```
+server:
+    name: myserver
+    ip: 192.17.1.8
+    port: 8080
+
+    startup_script_pipe: |
+      echo "Starting the server 1"
+      npm install
+      npm start
+
+    strtup_script_arrow: >
+      echo "Starting the server 2"
+      npm install
+      npm start
+
+database:
+    host: myhost
+    name: mydatabase
+    credentials:
+        user: admin
+        password: password
+```
+
+Write in your notes: When would you use | vs >?server:
+use | => Writing shell scripts, Storing config files
+use > => Store description or long text
+
+
 Task 5: Validate Your YAML
 
     Install yamllint or use an online validator
-    Validate both your YAML files
+    
+    Validate both your YAML files 
+    $ yamllint server.yaml
+    
     Intentionally break the indentation — what error do you get?
+    
+    server.yaml
+  1:1       warning  missing document start "---"  (document-start)
+  9:3       error    syntax error: expected <block end>, but found '<scalar>' (syntax)
+
+
     Fix it and validate again
+    -> No Error
 
 Task 6: Spot the Difference
 
@@ -81,3 +139,5 @@ name: devops
 tools:
 - docker
   - kubernetes
+
+-> Block 1 has correct indentation and where as Block 2 has wrong indentation.
