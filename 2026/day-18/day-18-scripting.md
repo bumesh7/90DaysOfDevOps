@@ -67,11 +67,40 @@ Task 3: Strict Mode — set -euo pipefail
     Try a command that fails — what happens with set -e?
     Try a piped command where one part fails — what happens with set -o pipefail?
 
+```
+$ vim strict_demo.sh
+
+#!/bin/bash
+set -euo pipefail
+
+echo "undefined variable test set -u"
+echo "$MY_VAR"
+
+echo "Before failure test  set -e"
+ls /umesh/abc/
+echo "After failure"
+
+echo "pipeline test set -o pipefail"
+cat test.txt | grep "hi"
+
+$ chmod +x strict_demo.sh
+$ ./strict_demo.sh
+```
 Document: What does each flag do?
 
-    set -e →
-    set -u →
-    set -o pipefail →
+```
+set -e →
+Before failure test  set -e
+ls: cannot access '/umesh/abc/': No such file or directory
+ 
+set -u →
+undefined variable test set -u
+./strict_demo.sh: line 5: MY_VAR: unbound variable
+
+set -o pipefail →
+pipeline test set -o pipefail
+cat: test.txt: No such file or directory
+```
 
 Task 4: Local Variables
 
@@ -79,6 +108,31 @@ Task 4: Local Variables
         A function that uses local keyword for variables
         Show that local variables don't leak outside the function
         Compare with a function that uses regular variables
+
+```
+$ vim local_demo.sh
+
+#!/bin/bash
+global_var="I am a global variable"
+
+my_fun()
+{
+        local local_var="I am a local variable"
+        echo "I am golbal variable inside function: $global_var"
+        echo "I am local variavle inside funstion: $local_var"
+
+}
+my_fun
+
+echo "I am local variable outside the funstion: $local_var"
+
+$ chmod +x local_demo.sh
+$./local_demo.sh
+
+I am golbal variable inside function: I am a global variable
+I am local variavle inside funstion: I am a local variable
+I am local variable outside the funstion: 
+```
 
 Task 5: Build a Script — System Info Reporter
 
@@ -92,11 +146,51 @@ Create system_info.sh that uses functions for everything:
     A main function that calls all of the above with section headers
     Use set -euo pipefail at the top
 
-Output should look clean and readable.
-Hints
+```
+$ vim system_info.sh
 
-    Function syntax: function_name() { ... }
-    Local vars: local MY_VAR="value"
-    Strict mode: set -euo pipefail as first line after shebang
-    Pass args to functions: greet "Shubham" → access as $1 inside
-    $? gives the exit code of last command
+!/bin/bash
+set -euo pipefail
+main()
+{
+        sys_info()
+        {
+                echo "System information"
+                hostname
+                uname -o
+        }
+        sys_info
+
+        uptime_info()
+        {
+                echo "Uptime information"
+                uptime -p
+        }
+        uptime_info
+
+        disk_info()
+        {
+                echo "Disk information"
+                df -h | sort -hr -k5 | head -5  # sort by column 5 in reverse order and give top 5.
+        }
+        disk_info
+
+        memory_info()
+        {
+                echo "Memory information"
+                free -h
+        }
+        memory_info
+
+        cpu_info()
+        {
+                echo "cpu information"
+                ps -eo pid,comm,%cpu --sort=-%cpu | head -6
+        }
+        cpu_info
+}
+main
+
+$ chmod +x system_info.sh
+$ ./system_info.sh
+```
