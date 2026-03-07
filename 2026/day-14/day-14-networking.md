@@ -64,12 +64,46 @@ Pick one target service/host (e.g., google.com, your lab server, or a local serv
 
 Mini Task: Port Probe & Interpret
 
-    Identify one listening port from ss -tulpn (e.g., SSH on 22 or a local web app).
-    From the same machine, test it: nc -zv localhost <port> (or curl -I http://localhost:<port>).
-    Write one line: is it reachable? If not, what’s the next check? (e.g., service status, firewall).
+```
+Identify one listening port from ss -tulpn (e.g., SSH on 22 or a local web app).
 
+$ ss -tulpn
+Netid         State          Recv-Q  Send-Q   Local Address:Port   Peer Address:Port         Process
+tcp           LISTEN         0       4096      [::]:22               [::]:*
+It listens on 0.0.0.0:22, meaning the server accepts SSH connections from any network interface. 
+
+From the same machine, test it: nc -zv localhost <port> (or curl -I http://localhost:<port>).
+
+$ nc -zv localhost 22
+Connection to localhost (127.0.0.1) 22 port [tcp/ssh] succeeded!
+
+Write one line: is it reachable? If not, what’s the next check? (e.g., service status, firewall).
+
+-> Yes the connection is reacheable, if it donot connect check below command
+$ systemctl status ssh
+```
+```
 Reflection (add to your markdown)
 
-    Which command gives you the fastest signal when something is broken?
-    What layer (OSI/TCP-IP) would you inspect next if DNS fails? If HTTP 500 shows up?
-    Two follow-up checks you’d run in a real incident.
+Which command gives you the fastest signal when something is broken?
+
+$ ping google.com
+Tells that you are reachable or not to the network.
+
+What layer (OSI/TCP-IP) would you inspect next if DNS fails? If HTTP 500 shows up?
+
+$ dig google.com
+Inspect the application layer
+
+If HTTP 500 shows up
+
+Application crash
+Backend failure
+Database connection issue
+Server misconfiguration
+
+Two follow-up checks you’d run in a real incident.
+
+$ systemctl status ssh   => check if its running
+$ ss -tulpn => check if it is listening to the port
+```
