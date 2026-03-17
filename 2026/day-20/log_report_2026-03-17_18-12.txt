@@ -1,0 +1,21 @@
+===== Log Analysis Report =====
+Date of Analysis: 2026-03-17
+Log File: /home/umesh/Documents/Devops/Day-20/abcd.txt
+Total Lines Processed: 71
+Total Error Count: 40
+
+--- Top 5 Error Messages ---
+     11 Connection timed out
+      9 File not found
+      7 Permission denied
+      6 Out of memory
+      6 Disk I/O error
+
+--- Critical Events ---
+Line 7: 2025-07-29 08:06:07 CRITICAL Disk space below threshold
+Line 14: 2025-07-29 08:13:14 CRITICAL Database connection lost
+Line 25: 2025-07-29 08:24:25 CRITICAL Service crash detected
+Line 35: 2025-07-29 08:34:35 CRITICAL Kernel panic
+Line 44: 2025-07-29 08:43:44 CRITICAL Memory leak detected
+Line 53: 2025-07-29 08:52:53 CRITICAL Network failure
+Line 67: 2025-07-29 09:05:06 CRITICAL System halt
