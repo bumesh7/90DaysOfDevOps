@@ -177,11 +177,15 @@ Build muscle memory with cluster operations:
 
 # Delete your cluster
 kind delete cluster --name devops-cluster
+
+
 # (or: minikube delete)
 
 # Recreate it
 kind create cluster --name devops-cluster
 # (or: minikube start)
+
+<img width="1199" height="448" alt="image" src="https://github.com/user-attachments/assets/2174ccf8-8be5-4472-866c-5ab3b28794c3" />
 
 # Verify it is back
 kubectl get nodes
@@ -193,6 +197,42 @@ kubectl config current-context
 # List all available contexts (clusters)
 kubectl config get-contexts
 
+<img width="1199" height="123" alt="image" src="https://github.com/user-attachments/assets/cd31605e-5c79-433e-85ae-a846a6fd1293" />
+
+
 # See the full kubeconfig
 kubectl config view
+```
+umesh@umesh-Aspire-A515-57G:~$ kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://127.0.0.1:39959
+  name: kind-umesh-cluster
+contexts:
+- context:
+    cluster: kind-umesh-cluster
+    user: kind-umesh-cluster
+  name: kind-umesh-cluster
+current-context: kind-umesh-cluster
+kind: Config
+users:
+- name: kind-umesh-cluster
+  user:
+    client-certificate-data: DATA+OMITTED
+    client-key-data: DATA+OMITTED
+```
+
 Write down: What is a kubeconfig? Where is it stored on your machine?
+```
+A kubeconfig is a configuration file used by Kubernetes to connect to and interact with a cluster.
+
+It contains:
+
+Cluster details (API server endpoint)
+User credentials (authentication info)
+Contexts (which cluster + user + namespace to use)
+
+path: ~/.kube/config
+```
