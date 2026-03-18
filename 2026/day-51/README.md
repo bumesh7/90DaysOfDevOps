@@ -63,11 +63,14 @@ Apply it:
 kubectl apply -f nginx-pod.yaml
 ```
 
+
 Verify:
 ```bash
 kubectl get pods
 kubectl get pods -o wide
 ```
+<img width="1199" height="277" alt="image" src="https://github.com/user-attachments/assets/e6b14757-dd2f-4138-a621-6b4fae22c654" />
+
 
 Wait until the STATUS shows `Running`. Then explore:
 ```bash
@@ -83,9 +86,15 @@ kubectl exec -it nginx-pod -- /bin/bash
 # Inside the container, run:
 curl localhost:80
 exit
+
 ```
+<img width="1231" height="1000" alt="image" src="https://github.com/user-attachments/assets/93b1e336-29f6-43a1-8d3a-7cf59e430692" />
+<img width="1862" height="848" alt="image" src="https://github.com/user-attachments/assets/6349e55d-34b2-40cd-8113-a6d1943daaa7" />
+<img width="1004" height="670" alt="image" src="https://github.com/user-attachments/assets/69cccdf6-ae12-4c4c-b42d-2f58a36ad7ea" />
 
 **Verify:** Can you see the Nginx welcome page when you curl from inside the pod?
+
+<img width="1255" height="357" alt="image" src="https://github.com/user-attachments/assets/27a97817-de26-4376-847c-ef5e8b0323ed" />
 
 ---
 
@@ -118,6 +127,9 @@ Notice the `command` field — BusyBox does not run a long-lived server like Ngi
 
 **Verify:** Can you see "Hello from BusyBox" in the logs?
 
+<img width="1255" height="165" alt="image" src="https://github.com/user-attachments/assets/b3a8bee4-7608-4cff-80cc-c288c5eab394" />
+
+
 ---
 
 ### Task 3: Imperative vs Declarative
@@ -130,10 +142,137 @@ kubectl run redis-pod --image=redis:latest
 # Check it
 kubectl get pods
 ```
+<img width="1255" height="272" alt="image" src="https://github.com/user-attachments/assets/42334ad7-a561-451f-a141-ff31daa4fc0d" />
 
 Now extract the YAML that Kubernetes generated:
 ```bash
 kubectl get pod redis-pod -o yaml
+```
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2026-03-18T15:44:06Z"
+  generation: 1
+  labels:
+    run: redis-pod
+  name: redis-pod
+  namespace: default
+  resourceVersion: "27504"
+  uid: 78902e79-b8f7-4a0e-a251-bcde5ffd9e0c
+spec:
+  containers:
+  - image: redis:latest
+    imagePullPolicy: Always
+    name: redis-pod
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-b88lk
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: umesh-cluster-worker2
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: kube-api-access-b88lk
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2026-03-18T15:44:25Z"
+    observedGeneration: 1
+    status: "True"
+    type: PodReadyToStartContainers
+  - lastProbeTime: null
+    lastTransitionTime: "2026-03-18T15:44:07Z"
+    observedGeneration: 1
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2026-03-18T15:44:25Z"
+    observedGeneration: 1
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2026-03-18T15:44:25Z"
+    observedGeneration: 1
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2026-03-18T15:44:07Z"
+    observedGeneration: 1
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: containerd://5c268942fd302b79a5c2bdc065bab30fb76368d14ecad8756e3f256b2b90af50
+    image: docker.io/library/redis:latest
+    imageID: docker.io/library/redis@sha256:315270d166080f537bbdf1b489b603aaaa213cb55a544acfa51feb7481abb1c0
+    lastState: {}
+    name: redis-pod
+    ready: true
+    resources: {}
+    restartCount: 0
+    started: true
+    state:
+      running:
+        startedAt: "2026-03-18T15:44:24Z"
+    user:
+      linux:
+        gid: 0
+        supplementalGroups:
+        - 0
+        uid: 0
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-b88lk
+      readOnly: true
+      recursiveReadOnly: Disabled
+  hostIP: 172.18.0.5
+  hostIPs:
+  - ip: 172.18.0.5
+  observedGeneration: 1
+  phase: Running
+  podIP: 10.244.3.2
+  podIPs:
+  - ip: 10.244.3.2
+  qosClass: BestEffort
+  startTime: "2026-03-18T15:44:07Z"
+
 ```
 
 Compare this output with your hand-written manifests. Notice how much extra metadata Kubernetes adds automatically (status, timestamps, uid, resource version).
@@ -149,6 +288,26 @@ This is a powerful trick — use it to quickly scaffold a manifest, then customi
 
 ---
 
+```
+$ kubectl run test-pod --image=nginx --dry-run=client -o yaml > auto-generated-pod-script.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: test-pod
+  name: test-pod
+spec:
+  containers:
+  - image: nginx
+    name: test-pod
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+```
+
 ### Task 4: Validate Before Applying
 Before applying a manifest, you can validate it:
 
@@ -156,13 +315,32 @@ Before applying a manifest, you can validate it:
 # Check if the YAML is valid without actually creating the resource
 kubectl apply -f nginx-pod.yaml --dry-run=client
 
+YAML syntax is correct
+Required fields exist
+Basic structure is valid
+
 # Validate against the cluster's API (server-side validation)
 kubectl apply -f nginx-pod.yaml --dry-run=server
+
+Everything client does
+API version validity
+Admission controllers / policies
+Cluster-specific rules
+Whether the resource would actually be accepted
+
+Use client = while writing YAML quickly
+
+Use server = before deploying to production
 ```
 
 Now intentionally break your YAML (remove the `image` field or add an invalid field) and run dry-run again. See what error you get.
 
+<img width="1255" height="236" alt="image" src="https://github.com/user-attachments/assets/3d2a5543-c158-47ec-8624-5a71ff70b9e0" />
+
+
 **Verify:** What error does Kubernetes give when the image field is missing?
+
+-> The Pod "nginx-pod" is invalid: spec.containers[0].image: Required value
 
 ---
 
