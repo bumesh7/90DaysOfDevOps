@@ -167,10 +167,17 @@ kubectl get namespaces
 kubectl get pods -A
 Look at the pods running in the kube-system namespace:
 
+<img width="1199" height="408" alt="image" src="https://github.com/user-attachments/assets/2ee92b53-361f-40b4-b468-071a750cf05d" />
+
 kubectl get pods -n kube-system
+
+<img width="1199" height="387" alt="image" src="https://github.com/user-attachments/assets/d8cc7a02-afb5-4999-9ab3-b867f234c5ed" />
+
 You should see pods like etcd, kube-apiserver, kube-scheduler, kube-controller-manager, coredns, and kube-proxy. These are the architecture components you drew in Task 2 — running as pods inside the cluster.
 
 Verify: Can you match each running pod in kube-system to a component in your architecture diagram?
+
+-> Yes Can Match
 
 Task 6: Practice Cluster Lifecycle
 Build muscle memory with cluster operations:
