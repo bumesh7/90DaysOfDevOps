@@ -368,6 +368,24 @@ kubectl label pod nginx-pod environment-
 Write a manifest for a third pod with at least 3 labels (app, environment, team). Apply it and practice filtering.
 
 ---
+```
+kind: Pod
+apiVersion: v1
+metadata:
+  name: nginx-pod
+  labels:
+    app: nginx
+    environment: dev
+    team: devops
+
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+<img width="1674" height="471" alt="Screenshot from 2026-03-20 00-05-41" src="https://github.com/user-attachments/assets/f64b3b0a-1cce-45ab-91f8-08953f128f06" />
 
 ### Task 6: Clean Up
 Delete all the pods you created:
@@ -384,6 +402,8 @@ kubectl delete -f nginx-pod.yaml
 # Verify everything is gone
 kubectl get pods
 ```
+<img width="1162" height="407" alt="image" src="https://github.com/user-attachments/assets/6243c684-cb19-4b4c-bbd9-b18525a42d48" />
+
 
 Notice that when you delete a standalone Pod, it is gone forever. There is no controller to recreate it. This is why in production you use Deployments (coming on Day 52) instead of bare Pods.
 
