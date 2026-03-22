@@ -193,6 +193,7 @@ spec:
 kubectl apply -f nodeport-service.yaml
 kubectl get services
 ```
+<img width="940" height="193" alt="image" src="https://github.com/user-attachments/assets/156ff2a2-65c1-4d1e-834d-13fdc1c21f5d" />
 
 Access the service:
 ```bash
@@ -234,6 +235,8 @@ spec:
 kubectl apply -f loadbalancer-service.yaml
 kubectl get services
 ```
+<img width="981" height="245" alt="image" src="https://github.com/user-attachments/assets/694d8238-a256-4bf3-ab78-dfee454bc716" />
+
 
 On a local cluster (Minikube, Kind, Docker Desktop), the EXTERNAL-IP will show `<pending>` because there is no cloud provider to create a real load balancer. This is expected.
 
@@ -248,6 +251,8 @@ kubectl get services
 In a real cloud cluster, the EXTERNAL-IP would be a public IP address or hostname provisioned by the cloud provider.
 
 **Verify:** What does the EXTERNAL-IP column show? Why is it `<pending>` on a local cluster?
+
+-> EXTERNAL-IP shows the public IP assigned by a cloud load balancer. It remains <pending> in local clusters because there is no cloud provider to provision an external load balancer.
 
 ---
 
@@ -277,7 +282,15 @@ kubectl describe service web-app-loadbalancer
 
 You should see all three: a ClusterIP, a NodePort, and the LoadBalancer configuration.
 
+<img width="1017" height="422" alt="image" src="https://github.com/user-attachments/assets/5c8f92dd-01a8-4d3a-ae02-18a5c1af7b8f" />
+
+IP(cluster IP): 10.96.173.238
+NodePort:  <unset>  32436/TCP
+
+
 **Verify:** Does the LoadBalancer service also have a ClusterIP and NodePort assigned?
+
+-> Yes, a LoadBalancer service automatically gets both a ClusterIP and a NodePort. The ClusterIP is used for internal communication, and the NodePort is used to expose the service externally.
 
 ---
 
@@ -295,6 +308,7 @@ kubectl get services
 Only the built-in `kubernetes` service in the default namespace should remain.
 
 **Verify:** Is everything cleaned up?
+<img width="1014" height="390" alt="image" src="https://github.com/user-attachments/assets/ae880da5-2918-4f74-bfc8-293604fe1a0b" />
 
 ---
 
@@ -312,8 +326,24 @@ Only the built-in `kubernetes` service in the default namespace should remain.
 ## Documentation
 Create `day-53-services.md` with:
 - What problem Services solve and how they relate to Pods and Deployments
+  
+Deployment → manages Pods (scaling, updates)
+Pods → run your application
+Service → provides stable access to Pods
+
 - Your three Service manifests with an explanation of each type
+
+Cluster IP: Communicate inside the cluster
+Node Port: Access app using <Internal Node Ip>
+Load Balancing: Public access via cloud load balancer
+  
 - The difference between ClusterIP, NodePort, and LoadBalancer
+ClusterIP is used for internal communication, NodePort exposes the service on a node’s port, and LoadBalancer provides a public IP for external access.
+
 - How Kubernetes DNS works for service discovery
+
+Kubernetes DNS lets you access services using names instead of IPs, even though Pod IPs keep changing.
+  
 - What Endpoints are and how to inspect them
-- Screenshot of your services and the test output
+Endpoints = Actual Pod IPs behind a Service
+
