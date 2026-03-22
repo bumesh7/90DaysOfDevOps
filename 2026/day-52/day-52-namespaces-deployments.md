@@ -36,18 +36,24 @@ kubectl get namespaces
 
 You can also create a namespace from a manifest:
 
-# namespace.yaml
+namespace.yaml
+
+```
 apiVersion: v1
 kind: Namespace
 metadata:
   name: production
+```
 kubectl apply -f namespace.yaml
+
 Now run a pod in a specific namespace:
 
 <img width="990" height="332" alt="image" src="https://github.com/user-attachments/assets/b3c569f4-0b7c-460d-86f6-5455b1118c50" />
-
+```
 kubectl run nginx-dev --image=nginx:latest -n dev
 kubectl run nginx-staging --image=nginx:latest -n staging
+```
+
 List pods across all namespaces:
 
 <img width="1155" height="100" alt="image" src="https://github.com/user-attachments/assets/87baa5d4-7410-4b62-b0a3-5566a664df31" />
@@ -68,6 +74,7 @@ A Deployment tells Kubernetes: "I want X replicas of this Pod running at all tim
 
 Create a file nginx-deployment.yaml:
 
+```
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -90,6 +97,7 @@ spec:
         image: nginx:1.24
         ports:
         - containerPort: 80
+```
 Key differences from a standalone Pod:
 
 kind: Deployment instead of kind: Pod
