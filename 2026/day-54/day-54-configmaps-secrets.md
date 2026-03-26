@@ -275,56 +275,140 @@ Optional Encryption at Rest = Can be enabled in cluster
 ### Task 5: Use Secrets in a Pod
 1. Write a Pod manifest that injects `DB_USER` as an environment variable using `secretKeyRef`
 2. In the same Pod, mount the entire `db-credentials` Secret as a volume at `/etc/db-credentials` with `readOnly: true`
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-pod
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command: ["sh", "-c", "env && sleep 3600"]
+    
+    # Inject single key as env variable
+    env:
+    - name: DB_USER
+      valueFrom:
+        secretKeyRef:
+          name: db-credentials
+          key: DB_USER
+
+    # Mount entire Secret as volume
+    volumeMounts:
+    - name: secret-volume
+      mountPath: /etc/db-credentials
+      readOnly: true
+
+  volumes:
+  - name: secret-volume
+    secret:
+      secretName: db-credentials
+```
+
 3. Verify: each Secret key becomes a file, and the content is the decoded plaintext value
 
+```
+Verify secret mounted as file
+
+$ kubectl exec secret-pod -- ls /etc/db-credentials
+
+Check file content
+
+$ kubectl exec secret-pod -- cat /etc/db-credentials/DB_PASSWORD
+
+$ kubectl exec secret-pod -- cat /etc/db-credentials/DB_USER
+```
+
 **Verify:** Are the mounted file values plaintext or base64?
+
+```
+The mounted file values are plaintext (decoded) — NOT base64.
+
+In Kubernetes API (kubectl get secret -o yaml) → values are base64 encoded
+But when mounted inside a Pod → Kubernetes automatically decodes them
+```
+
+<img width="1219" height="546" alt="image" src="https://github.com/user-attachments/assets/5ccacac8-1b15-410e-8a27-bf46a35d2de2" />
 
 ---
 
 ### Task 6: Update a ConfigMap and Observe Propagation
 1. Create a ConfigMap `live-config` with a key `message=hello`
+
+```
+$ kubectl create configmap live-config --from-literal=message=hello
+```
 2. Write a Pod that mounts this ConfigMap as a volume and reads the file in a loop every 5 seconds
+
+```
+$ vim live-config-pod.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: live-config-pod
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          echo "Message: $(cat /config/message)";
+          sleep 5;
+        done
+    volumeMounts:
+    - name: config-volume
+      mountPath: /config
+
+  volumes:
+  - name: config-volume
+    configMap:
+      name: live-config
+```
+
+```
+$ kubectl apply -f live-config-pod.yaml
+
+$ kubectl logs -f live-config-pod
+```
+
 3. Update the ConfigMap: `kubectl patch configmap live-config --type merge -p '{"data":{"message":"world"}}'`
+
+```
+$ kubectl patch configmap live-config --type merge -p '{"data":{"message":"world"}}'
+```
+
 4. Wait 30-60 seconds — the volume-mounted value updates automatically
+
+<img width="1409" height="921" alt="image" src="https://github.com/user-attachments/assets/718ae770-e49c-42f9-8e6f-edd27356b8d2" />
+
+
 5. Environment variables from earlier tasks do NOT update — they are set at pod startup only
 
 **Verify:** Did the volume-mounted value change without a pod restart?
+
+```
+Yes the volume-mounted value changed automatically without restarting the Pod
+```
 
 ---
 
 ### Task 7: Clean Up
 Delete all pods, ConfigMaps, and Secrets you created.
 
----
+```
+$ kubectl delete pod live-config-pod env-pod nginx-config-pod secret-pod
 
-## Hints
-- `--from-literal=KEY=VALUE` for command-line values, `--from-file=key=filename` for file contents
-- `envFrom` injects all keys; `env` with `valueFrom` injects individual keys
-- `echo -n 'value' | base64` — always use `-n` to avoid encoding a trailing newline
-- Volume-mounted ConfigMaps/Secrets auto-update; environment variables do not
-- `kubectl get secret <name> -o jsonpath='{.data.KEY}' | base64 --decode` extracts and decodes a value
+$ kubectl delete configmap live-config nginx-config app-config
 
----
+$ kubectl delete secret db-credentials
+```
 
-## Documentation
-Create `day-54-configmaps-secrets.md` with:
-- What ConfigMaps and Secrets are and when to use each
-- The difference between environment variables and volume mounts
-- Why base64 is encoding, not encryption
-- How ConfigMap updates propagate to volumes but not env vars
+<img width="1388" height="338" alt="image" src="https://github.com/user-attachments/assets/ae87e0b1-8fc6-4e74-98c1-10b47cf25afa" />
 
 ---
-
-## Submission
-1. Add `day-54-configmaps-secrets.md` to `2026/day-54/`
-2. Commit and push to your fork
-
----
-
-## Learn in Public
-Share on LinkedIn: "Learned Kubernetes ConfigMaps and Secrets today. Injected config as environment variables and volume mounts, and discovered that base64 encoding is not encryption."
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
