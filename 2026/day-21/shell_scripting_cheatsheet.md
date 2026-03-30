@@ -236,12 +236,76 @@ esac
 ### Task 3: Loops
 Document with examples:
 1. `for` loop — list-based and C-style
-2. `while` loop
-3. `until` loop
-4. Loop control — `break`, `continue`
-5. Looping over files — `for file in *.log`
-6. Looping over command output — `while read line`
+```
+List based
 
+for i in 1 2 3 4 5
+do
+  echo "Number: $i"
+done
+
+C-style
+
+for ((i=1; i<=5; i++))
+do
+  echo "Count: $i"
+done
+```
+2. `while` loop
+```
+count=1
+
+while [ $count -le 5 ]
+do
+  echo "Count: $count"
+  ((count++))
+done
+```
+3. `until` loop
+```
+count=1
+
+until [ $count -gt 5 ]
+do
+  echo "Count: $count"
+  ((count++))
+done
+```
+4. Loop control — `break`, `continue`
+```
+#stop at 3
+
+for i in 1 2 3 4 5
+do
+  if [ $i -eq 3 ]; then
+    break
+  fi
+  echo $i
+done
+
+#skip 3
+for i in 1 2 3 4 5
+do
+  if [ $i -eq 3 ]; then
+    continue
+  fi
+  echo $i
+done
+```
+5. Looping over files — `for file in *.log`
+```
+for file in *.log
+do
+  echo "Processing $file"
+done
+```
+6. Looping over command output — `while read line`
+```
+cat file.txt | while read line
+do
+  echo "Line: $line"
+done
+```
 ---
 
 ### Task 4: Functions
