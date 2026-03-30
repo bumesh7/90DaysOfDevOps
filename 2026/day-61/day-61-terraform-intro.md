@@ -82,6 +82,24 @@ Create a file called `main.tf` with:
 2. A `provider "aws"` block with your region
 3. A `resource "aws_s3_bucket"` that creates a bucket with a globally unique name
 
+```
+$ vim s3.tf
+
+resource "aws_s3_bucket" "example" {
+  bucket = "umesh-s3-bucket-true"
+}
+
+$ vim providers.tf
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+$ terraform init
+$ terraform fmt
+$ terraform plan
+$ terraform apply -auto-approve
+```
 Run the Terraform lifecycle:
 ```bash
 terraform init      # Download the AWS provider
@@ -91,8 +109,22 @@ terraform apply     # Create the bucket (type 'yes' to confirm)
 
 Go to the AWS S3 console and verify your bucket exists.
 
-**Document:** What did `terraform init` download? What does the `.terraform/` directory contain?
+<img width="1043" height="67" alt="image" src="https://github.com/user-attachments/assets/092153a6-18d6-49f5-9e30-4c61a32927b0" />
 
+**Document:** What did `terraform init` download? What does the `.terraform/` directory contain?
+```
+terraform init downloads => providers, modules if used and Backend Initilization
+
+Dependency Lock File (.terraform.lock.hcl)
+Stores exact provider versions
+Ensures consistency across machines
+
+.terraform/
+├── providers/
+├── modules/
+├── terraform.tfstate (sometimes, local backend)
+└── other metadata
+```
 ---
 
 ### Task 4: Add an EC2 Instance
@@ -101,6 +133,17 @@ In the same `main.tf`, add:
 2. Set instance type to `t2.micro`
 3. Add a tag: `Name = "TerraWeek-Day1"`
 
+```
+resource "aws_instance" "terraweek_day1" {
+  ami           = "ami-0f5ee92e2d63afc18"  # Amazon Linux 2 (ap-south-1)
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "TerraWeek-Day1"
+  }
+}
+```
+
 Run:
 ```bash
 terraform plan      # You should see 1 resource to add (bucket already exists)
@@ -108,9 +151,12 @@ terraform apply
 ```
 
 Go to the AWS EC2 console and verify your instance is running with the correct name tag.
+<img width="1572" height="81" alt="image" src="https://github.com/user-attachments/assets/ad3809bb-bf91-47e1-8a16-69c5c9c1b7a1" />
 
 **Document:** How does Terraform know the S3 bucket already exists and only the EC2 instance needs to be created?
-
+```
+terraform.tfstate file manages which resource terraform already created and also fetch the terraform configuration.
+```
 ---
 
 ### Task 5: Understand the State File
@@ -124,19 +170,53 @@ terraform state list                    # List all resources Terraform manages
 terraform state show aws_s3_bucket.<name>   # Detailed view of a specific resource
 terraform state show aws_instance.<name>
 ```
+<img width="1153" height="979" alt="image" src="https://github.com/user-attachments/assets/cab02450-3867-42c4-b385-f35c64e556de" />
 
 3. Answer these questions in your notes:
    - What information does the state file store about each resource?
-   - Why should you never manually edit the state file?
-   - Why should the state file not be committed to Git?
+```
+Terraform state stores:
 
+Resource type & name
+Real-world ID (like EC2 instance ID i-xxxxx)
+All attributes (IP, tags, config)
+Dependency relationships
+Provider details
+```
+   - Why should you never manually edit the state file?
+```
+You can corrupt the file
+Terraform may lose track of resources
+Can cause duplicate creation or deletion
+```
+   - Why should the state file not be committed to Git?
+```
+It contains Sensitive data like
+Access keys
+Passwords
+Private IPs / infrastructure details
+
+Collaboration issues
+
+Multiple people editing → conflicts 
+No locking → race conditions
+```
 ---
 
 ### Task 6: Modify, Plan, and Destroy
 1. Change the EC2 instance tag from `"TerraWeek-Day1"` to `"TerraWeek-Modified"` in your `main.tf`
 2. Run `terraform plan` and read the output carefully:
    - What do the `~`, `+`, and `-` symbols mean?
+```
+Symbol	Meaning
++	Resource will be created
+-	Resource will be destroyed
+~	Resource will be updated in-place
+```
    - Is this an in-place update or a destroy-and-recreate?
+```
+The resouce is updated
+```
 3. Apply the change
 4. Verify the tag changed in the AWS console
 5. Finally, destroy everything:
@@ -145,6 +225,8 @@ terraform destroy
 ```
 6. Verify in the AWS console -- both the S3 bucket and EC2 instance should be gone
 
----
+<img width="1507" height="659" alt="image" src="https://github.com/user-attachments/assets/8c874802-26f1-4a6d-9798-28397f83866a" />
 
-**TrainWithShubham**
+<img width="1607" height="145" alt="image" src="https://github.com/user-attachments/assets/6cc56ba5-0ece-40b6-a716-60b4fff79ebe" />
+
+<img width="1018" height="218" alt="image" src="https://github.com/user-attachments/assets/fa69b4b0-499f-43b1-9662-5e50fac4f46d" />
