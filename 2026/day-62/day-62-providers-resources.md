@@ -47,9 +47,66 @@ Create a `main.tf` and define these resources one by one:
 4. `aws_route_table` -- create it in the VPC, add a route for `0.0.0.0/0` pointing to the internet gateway
 5. `aws_route_table_association` -- associate the route table with the subnet
 
+```
+# 1. VPC
+resource "aws_vpc" "main_vpc" {
+  cidr_block = "10.0.0.0/16"
+
+  tags = {
+    Name = "TerraWeek-VPC"
+  }
+}
+
+# 2. Public Subnet
+resource "aws_subnet" "public_subnet" {
+  vpc_id                  = aws_vpc.main_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "TerraWeek-Public-Subnet"
+  }
+}
+
+# 3. Internet Gateway
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main_vpc.id
+
+  tags = {
+    Name = "TerraWeek-IGW"
+  }
+}
+
+# 4. Route Table
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.main_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "TerraWeek-RT"
+  }
+}
+
+# 5. Route Table Association
+resource "aws_route_table_association" "public_assoc" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_rt.id
+}
+```
+
 Run `terraform plan` -- you should see 5 resources to create.
+<img width="770" height="618" alt="image" src="https://github.com/user-attachments/assets/7245c34e-afb4-484f-85cd-f92f89ddb373" />
 
 **Verify:** Apply and check the AWS VPC console. Can you see all five resources connected?
+```
+Yes all the 5 resources have been created
+```
+<img width="1020" height="300" alt="image" src="https://github.com/user-attachments/assets/d9794f1c-f28b-46b7-8534-adca9e8340bd" />
+<img width="1600" height="380" alt="image" src="https://github.com/user-attachments/assets/53faec1f-42ae-4d16-a0a4-e729421c9db4" />
 
 ---
 
@@ -62,9 +119,75 @@ Look at your `main.tf` carefully:
 
 Answer these questions:
 - How does Terraform know to create the VPC before the subnet?
-- What would happen if you tried to create the subnet before the VPC existed?
-- Find all implicit dependencies in your config and list them
+```
+Terraform builds a dependency graph (DAG) automatically.
+When you write:
+vpc_id = aws_vpc.main_vpc.id
 
+Terraform understands:
+“Subnet depends on VPC”
+
+So it will:
+
+Create VPC first
+Then create Subnet
+```
+- What would happen if you tried to create the subnet before the VPC existed?
+```
+It would fail immediately
+
+Example error:
+
+InvalidVpcID.NotFound: The vpc ID 'vpc-xxxx' does not exist
+
+Because:
+
+Subnet needs a valid VPC ID
+Without VPC → resource cannot exist
+```
+- Find all implicit dependencies in your config and list them
+```
+vpc_id = aws_vpc.main_vpc.id
+
+Subnet depends on VPC
+IGW must attach to VPC
+Route table belongs to VPC
+
+gateway_id = aws_internet_gateway.igw.id
+Route needs IGW
+
+Route Table Association → Subnet
+subnet_id = aws_subnet.public_subnet.id
+
+Route Table Association → Route Table
+route_table_id = aws_route_table.public_rt.id
+```
+```
+VPC
+ ├── Subnet
+ ├── Internet Gateway
+ └── Route Table
+       └── (depends on IGW)
+
+Route Table Association
+ ├── Subnet
+ └── Route Table
+
+1. VPC
+   ↓
+2. Subnet   +   Internet Gateway   +   Route Table   (parallel)
+   ↓
+3. Route (needs IGW)
+   ↓
+4. Route Table Association (last)
+
+Terraform creates resources in dependency order:
+
+First VPC
+Then Subnet, IGW, and Route Table
+Then Route (needs IGW)
+Finally Route Table Association
+```
 ---
 
 ### Task 4: Add a Security Group and EC2 Instance
