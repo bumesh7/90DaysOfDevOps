@@ -207,7 +207,82 @@ Add to your config:
    - Tag: `"TerraWeek-Server"`
 
 Apply and verify -- your EC2 instance should have a public IP and be reachable.
+```
+# 6. Security Group
+resource "aws_security_group" "web_sg" {
+  name        = "TerraWeek-SG"
+  description = "Allow SSH and HTTP"
+  vpc_id      = aws_vpc.main_vpc.id
 
+  # SSH
+  ingress {
+    description = "SSH Access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # HTTP
+  ingress {
+    description = "HTTP Access"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Outbound
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "TerraWeek-SG"
+  }
+}
+
+# 7. Get Latest Amazon Linux 2 AMI
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+
+  owners = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
+# 8. EC2 Instance
+resource "aws_instance" "web_server" {
+  ami                         = data.aws_ami.amazon_linux.id
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.public_subnet.id
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
+  associate_public_ip_address = true
+
+  key_name = "day-62.pub" #  Replace with your key
+
+  tags = {
+    Name = "TerraWeek-Server"
+  }
+}
+```
+```
+$ ssh-keygen day-62
+
+$ terraform init
+
+$ terraform validate
+
+$ terraform plan
+
+$ terraform apply -auto-approve
+```
 ---
 
 ### Task 5: Explicit Dependencies with depends_on
@@ -216,6 +291,20 @@ Sometimes Terraform cannot detect a dependency automatically.
 1. Add a second `aws_s3_bucket` resource for application logs
 2. Add `depends_on = [aws_instance.main]` to the S3 bucket -- even though there is no direct reference, you want the bucket created only after the instance
 3. Run `terraform plan` and observe the order
+
+```
+# S3 Bucket for Logs
+resource "aws_s3_bucket" "app_logs" {
+  bucket = "umesh-terraweek-logs-12345" # must be globally unique
+
+  tags = {
+    Name = "TerraWeek-Logs"
+  }
+
+  #  Explicit dependency
+  depends_on = [aws_instance.web_server]
+}
+```
 
 Now visualize the entire dependency tree:
 ```bash
@@ -226,9 +315,59 @@ If you don't have `dot` (Graphviz) installed, use:
 terraform graph
 ```
 and paste the output into an online Graphviz viewer.
+```
+digraph G {
+  rankdir = "RL";
+  node [shape = rect, fontname = "sans-serif"];
+  "data.aws_ami.amazon_linux" [label="data.aws_ami.amazon_linux"];
+  "aws_instance.web_server" [label="aws_instance.web_server"];
+  "aws_internet_gateway.igw" [label="aws_internet_gateway.igw"];
+  "aws_key_pair.my_key_pair" [label="aws_key_pair.my_key_pair"];
+  "aws_route_table.public_rt" [label="aws_route_table.public_rt"];
+  "aws_route_table_association.public_assoc" [label="aws_route_table_association.public_assoc"];
+  "aws_s3_bucket.app_logs" [label="aws_s3_bucket.app_logs"];
+  "aws_security_group.web_sg" [label="aws_security_group.web_sg"];
+  "aws_subnet.public_subnet" [label="aws_subnet.public_subnet"];
+  "aws_vpc.main_vpc" [label="aws_vpc.main_vpc"];
+  "aws_instance.web_server" -> "data.aws_ami.amazon_linux";
+  "aws_instance.web_server" -> "aws_key_pair.my_key_pair";
+  "aws_instance.web_server" -> "aws_security_group.web_sg";
+  "aws_instance.web_server" -> "aws_subnet.public_subnet";
+  "aws_internet_gateway.igw" -> "aws_vpc.main_vpc";
+  "aws_route_table.public_rt" -> "aws_internet_gateway.igw";
+  "aws_route_table_association.public_assoc" -> "aws_route_table.public_rt";
+  "aws_route_table_association.public_assoc" -> "aws_subnet.public_subnet";
+  "aws_s3_bucket.app_logs" -> "aws_instance.web_server";
+  "aws_security_group.web_sg" -> "aws_vpc.main_vpc";
+  "aws_subnet.public_subnet" -> "aws_vpc.main_vpc";
+}
+
+Flow: 
+aws_vpc
+ ├── aws_subnet
+ │    └── aws_instance
+ │          └── aws_s3_bucket (depends_on)
+ ├── aws_internet_gateway
+ └── aws_route_table
+```
+<img width="900" height="271" alt="image" src="https://github.com/user-attachments/assets/750d9e2f-9a81-4317-ac3a-937894b2ff8e" />
+
 
 **Document:** When would you use `depends_on` in real projects? Give two examples.
+```
+Use depends_on when:
 
+There is NO direct reference
+But order still matters
+
+Ex 1:
+Ensure EC2 is ready before logging system setup
+Avoid race conditions in automation scripts
+
+Ex 2:
+App needs DB to be fully available before starting
+Otherwise app crashes on startup
+```
 ---
 
 ### Task 6: Lifecycle Rules and Destroy
@@ -248,38 +387,179 @@ terraform destroy
 
 **Document:** What are the three lifecycle arguments (`create_before_destroy`, `prevent_destroy`, `ignore_changes`) and when would you use each?
 
+```
+-> Create new resource before deleting old one
+
+When to use:
+Zero downtime deployments
+Updating EC2, Load Balancer, ASG
+
+Purpose:
+
+-> Prevent accidental deletion of resource
+
+When to use:
+Critical infrastructure
+Example:
+Production database (RDS)
+Important S3 bucket
+
+If terraform destroy is run → Terraform throws error
+
+-> Ignore changes made outside Terraform
+
+lifecycle {
+  ignore_changes = [tags, instance_type]
+}lifecycle {
+  ignore_changes = [tags, instance_type]
+}
+
+When to use:
+External systems modify resources
+Example:
+Auto Scaling changes instance count
+Dev team manually updates tags
+
+Terraform will NOT try to revert those changes
+```
+```
+# 1. VPC
+resource "aws_vpc" "main_vpc" {
+  cidr_block = "10.0.0.0/16"
+
+  tags = {
+    Name = "TerraWeek-VPC"
+  }
+}
+
+# 2. Public Subnet
+resource "aws_subnet" "public_subnet" {
+  vpc_id                  = aws_vpc.main_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "ap-south-1a"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "TerraWeek-Public-Subnet"
+  }
+}
+
+# 3. Internet Gateway
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main_vpc.id
+
+  tags = {
+    Name = "TerraWeek-IGW"
+  }
+}
+
+# 4. Route Table
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.main_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "TerraWeek-RT"
+  }
+}
+
+# 5. Route Table Association
+resource "aws_route_table_association" "public_assoc" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+# 6. Security Group
+resource "aws_security_group" "web_sg" {
+  name        = "TerraWeek-SG"
+  description = "Allow SSH and HTTP"
+  vpc_id      = aws_vpc.main_vpc.id
+
+  # SSH
+  ingress {
+    description = "SSH Access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # HTTP
+  ingress {
+    description = "HTTP Access"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Outbound
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "TerraWeek-SG"
+  }
+}
+
+# 7. Get Latest Amazon Linux 2 AMI
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+
+  owners = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-*"] # chnaged from gp3 to *
+  }
+}
+
+# 8. EC2 Instance
+resource "aws_instance" "web_server" {
+  ami                         = data.aws_ami.amazon_linux.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public_subnet.id
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
+  associate_public_ip_address = true
+
+  key_name = aws_key_pair.my_key_pair.key_name # Replace key
+
+  lifecycle {
+    create_before_destroy = true
+  }
+  tags = {
+    Name = "TerraWeek-Server"
+  }
+}
+
+# 9. Keypair
+
+resource "aws_key_pair" "my_key_pair" {
+  key_name   = "day-62"
+  public_key = file("day-62.pub")
+}
+
+# 10. S3 Bucket for Logs
+resource "aws_s3_bucket" "app_logs" {
+  bucket = "umesh-terraweek-logs-12345" # must be globally unique
+
+  tags = {
+    Name = "TerraWeek-Logs"
+  }
+
+  #  Explicit dependency
+  depends_on = [aws_instance.web_server]
+}
+
+```
+
 ---
 
-## Hints
-- `aws_vpc.main.id` syntax: `<resource_type>.<resource_name>.<attribute>`
-- Use `terraform fmt` to keep your HCL clean
-- CIDR `10.0.0.0/16` gives you 65,536 IPs, `10.0.1.0/24` gives you 256
-- If you cannot SSH into the instance, check: security group rules, public IP, route table, internet gateway
-- `terraform graph` outputs DOT format -- paste it into webgraphviz.com if you don't have Graphviz
-- Always destroy resources when done to avoid AWS charges
-
----
-
-## Documentation
-Create `day-62-providers-resources.md` with:
-- Your full `main.tf` with comments explaining each resource
-- Screenshot of `terraform apply` output
-- Screenshot of the VPC and its resources in the AWS console
-- The dependency graph (image or text)
-- Explanation of implicit vs explicit dependencies in your own words
-
----
-
-## Submission
-1. Add `day-62-providers-resources.md` to `2026/day-62/`
-2. Commit and push to your fork
-
----
-
-## Learn in Public
-Share on LinkedIn: "Built a complete AWS networking stack with Terraform today -- VPC, subnets, internet gateway, route tables, security groups, and an EC2 instance. All connected through dependency graphs. Terraform decides the order, you define the desired state."
-
-`#90DaysOfDevOps` `#TerraWeek` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
