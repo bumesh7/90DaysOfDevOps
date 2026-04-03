@@ -384,6 +384,19 @@ lifecycle {
 terraform destroy
 ```
 4. Watch the destroy order -- Terraform destroys in reverse dependency order. Verify in the AWS console that everything is cleaned up.
+```
+S3 Bucket
+→ EC2 Instance
+→ Security Group
+→ Route Table Association
+→ Route Table
+→ Internet Gateway
+→ Subnet
+→ VPC
+→ Key Pair
+```
+<img width="926" height="558" alt="image" src="https://github.com/user-attachments/assets/0d4b939a-4714-4784-8f9a-e1e49853c8e6" />
+
 
 **Document:** What are the three lifecycle arguments (`create_before_destroy`, `prevent_destroy`, `ignore_changes`) and when would you use each?
 
