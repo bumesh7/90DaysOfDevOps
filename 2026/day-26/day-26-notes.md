@@ -133,20 +133,117 @@ gh issue create --title "Build Failed" --body "Check CI logs"
 
 ### Task 4: Pull Requests
 1. Create a branch, make a change, push it, and create a **pull request** entirely from the terminal
+```
+git checkout -b feature-update-readme
+
+echo "Update from CLI" >> README.md
+git add README.md
+git commit -m "Updated README from CLI"
+
+git push origin feature-update-readme
+
+gh pr create \
+  --repo bumesh7/my-test-repo \
+  --title "Update README via CLI" \
+  --body "This PR updates README file from terminal" \
+  --base main \
+  --head feature-update-readme
+```
+<img width="1548" height="660" alt="image" src="https://github.com/user-attachments/assets/3066a605-cbcf-41f8-9cc9-619183ab8fed" />
+
 2. List all open PRs on a repo
+```
+gh pr list --repo bumesh7/my-test-repo
+```
+<img width="1203" height="171" alt="image" src="https://github.com/user-attachments/assets/fb0c076d-6196-491e-913b-d4ed91cb43f1" />
+
 3. View the details of your PR — check its status, reviewers, and checks
+```
+syntax: gh pr view PR_NUMBER --repo bumesh7/my-test-repo
+
+gh pr view 1 --repo bumesh7/my-test-repo --json title,body,state
+```
+<img width="1442" height="173" alt="image" src="https://github.com/user-attachments/assets/f09f071b-1073-4e3b-a9c4-d1dc319a4519" />
+
 4. Merge your PR from the terminal
+```
+syntax: gh pr merge PR_NUMBER --repo bumesh7/my-test-repo
+
+gh pr merge 1 --repo bumesh7/my-test-repo
+```
+<img width="1230" height="188" alt="image" src="https://github.com/user-attachments/assets/eed39574-2a47-482a-9205-cf776437f926" />
+```
+Create a merge commit (default)
+
+Keeps all commits + adds a merge commit
+History looks like a tree
+Good for tracking full development history
+Slightly messy in big projects
+
+Rebase and merge
+
+Moves your commits on top of main
+No merge commit
+Clean linear history
+Rewrites commit history
+
+Squash and merge (Recommended)
+
+Combines all commits into one single commit
+Clean history
+Easy to read
+Most teams prefer this
+```
 5. Answer in your notes:
    - What merge methods does `gh pr merge` support?
-   - How would you review someone else's PR using `gh`?
+```
+gh pr merge --merge
 
+gh pr merge --squash
+
+gh pr merge --rebase
+```
+   - How would you review someone else's PR using `gh`?
+```
+checkout = gh pr checkout 1
+view changes = gh pr diff 1
+comment on PR = gh pr comment 1 --body "Looks good!"
+Approve PR = gh pr review 1 --approve
+Request Changes = gh pr review 1 --request-changes --body "Fix this issue"
+```
 ---
 
 ### Task 5: GitHub Actions & Workflows (Preview)
 1. List the workflow runs on any public repo that uses GitHub Actions
-2. View the status of a specific workflow run
-3. Answer in your notes: How could `gh run` and `gh workflow` be useful in a CI/CD pipeline?
+```
+syntax: gh run list --repo <user-name>/<repo-name>
 
+gh run list --repo bumesh7/GitHub_Actions
+```
+2. View the status of a specific workflow run
+```
+syntax: gh run view RUN_ID --repo <user-name>/<repo-name>
+
+gh run view 23089738835 --repo bumesh7/GitHub_Actions
+
+real time ci/cd monitor = gh run watch RUN_ID --repo <user-name>/<repo-name>
+```
+<img width="1511" height="496" alt="image" src="https://github.com/user-attachments/assets/45e9cd35-5934-4a1b-9e30-fc03553a9956" />
+
+3. Answer in your notes: How could `gh run` and `gh workflow` be useful in a CI/CD pipeline?
+```
+monitor pieplines = gh run list
+Debug Failuer = gh run view RUN_ID --log
+Trigger workflow manually = gh workflow run workflow.yml
+Re-run failed jobs = gh run rerun RUN_ID
+Manage Workflow = gh workflow list
+
+Automate Devops Workflow
+
+if gh run list | grep failure; then
+  echo "Pipeline failed!"
+fi
+```
 (Don't worry if you haven't learned GitHub Actions yet — this is a preview for upcoming days)
 
 ---
@@ -154,33 +251,41 @@ gh issue create --title "Build Failed" --body "Check CI logs"
 ### Task 6: Useful `gh` Tricks
 Explore and try these — add the ones you find useful to your `git-commands.md`:
 1. `gh api` — make raw GitHub API calls from the terminal
+```
+gh api user
+gh api repos/bumesh7/my-test-repo
+gh api repos/bumesh7/my-test-repo/issues
+```
 2. `gh gist` — create and manage GitHub Gists
+```
+gh gist create file.txt --public
+echo "Hello DevOps" | gh gist create --public
+gh gist list
+```
 3. `gh release` — create and manage releases
+```
+gh release create v1.0.0 \
+  --title "First Release" \
+  --notes "Initial release"
+
+gh release list
+
+gh release view v1.0.0
+```
 4. `gh alias` — create shortcuts for commands you use often
+```
+gh alias set prs "pr list"
+
+gh prs
+
+gh alias set co "pr checkout"
+```
 5. `gh search repos` — search GitHub repos from the terminal
+```
+gh search repos terraform
 
+gh search repos "terraform aws" --language=HCL
+
+gh search repos devops --limit 5
+```
 ---
-
-## Hints
-- `gh help` and `gh <command> --help` are your best friends
-- Most `gh` commands work with `--repo owner/repo` to target a specific repo
-- Use `--json` flag with most commands to get machine-readable output (useful for scripting)
-- `gh pr create --fill` auto-fills the PR title and body from your commits
-
----
-
-## Submission
-1. Add your `day-26-notes.md` to `2026/day-26/`
-2. Update `git-commands.md` with `gh` commands — this completes your Git & GitHub reference from Days 22–26
-3. Push to your fork
-
----
-
-## Learn in Public
-
-Share your favorite `gh` commands or a screenshot of creating a PR from the terminal on LinkedIn.
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
