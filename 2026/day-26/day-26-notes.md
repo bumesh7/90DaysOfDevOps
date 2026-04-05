@@ -72,6 +72,8 @@ gh repo view bumesh7/my-test-repo --web
 6. Delete the test repo you created (be careful!)
 ```
 gh repo delete <user-name>/<repo-name>
+
+gh repo delete bumesh7/my-test-repo
 ```
 <img width="1108" height="158" alt="image" src="https://github.com/user-attachments/assets/d0c86c9f-7520-43e5-9bc9-f59b2fb659c2" />
 
@@ -79,11 +81,54 @@ gh repo delete <user-name>/<repo-name>
 
 ### Task 3: Issues
 1. Create an issue on one of your repos from the terminal — give it a title, body, and a label
-2. List all open issues on that repo
-3. View a specific issue by its number
-4. Close an issue from the terminal
-5. Answer in your notes: How could you use `gh issue` in a script or automation?
+```
+syntax:
+gh issue create \
+  --repo username/repo-name \
+  --title "Bug: Login not working" \
+  --body "Users are unable to login after latest update" \
+  --label "bug"
 
+gh issue create \
+  --repo bumesh7/my-test-repo \
+  --title "Fix Terraform script error" \
+  --body "Terraform apply fails due to missing variable" \
+  --label "bug"
+```
+<img width="1813" height="447" alt="image" src="https://github.com/user-attachments/assets/9a53eb47-a527-4797-9a30-227741e950a5" />
+
+2. List all open issues on that repo
+```
+syntax: gh issue list --repo username/repo-nam
+
+gh issue list --repo bumesh7/my-test-repo
+```
+<img width="1170" height="364" alt="image" src="https://github.com/user-attachments/assets/e25489b9-160a-48b6-868b-e402ef27d95a" />
+
+3. View a specific issue by its number
+```
+syntax: gh issue view ISSUE_NUMBER --repo username/repo-name
+
+gh issue view 1 --repo bumesh7/my-test-repo
+
+if that command do not work 
+
+gh issue view 1 --repo bumesh7/my-test-repo --json title,body,state
+```
+<img width="1443" height="184" alt="image" src="https://github.com/user-attachments/assets/7f07b4d8-51be-4b62-9748-9f57d3920bee" />
+
+4. Close an issue from the terminal
+```
+syntax: gh issue view 1 --repo <username>/<repo-name>
+
+gh issue close 1 --repo bumesh7/my-test-repo
+```
+<img width="1453" height="77" alt="image" src="https://github.com/user-attachments/assets/51665b3d-69d5-4915-acc8-e301b933a674" />
+
+5. Answer in your notes: How could you use `gh issue` in a script or automation?
+```
+gh issue create --title "Build Failed" --body "Check CI logs"
+```
 ---
 
 ### Task 4: Pull Requests
