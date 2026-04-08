@@ -65,15 +65,72 @@ Draw a CI/CD pipeline for this scenario:
     A developer pushes code to GitHub. The app is tested, built into a Docker image, and deployed to a staging server.
 
 Include at least 3 stages. Hand-drawn and photographed is perfectly fine.
+
+```
+[ Developer ]
+      |
+      v
+[ GitHub Repo ]
+ (Code Push)
+      |
+      v
+-------------------------
+|   CI Pipeline         |
+|-----------------------|
+| 1. Build Stage        |
+| - Install deps        |
+| - Compile app         |
+|                       |
+| 2. Test Stage         |
+| - Run unit tests      |
+| - Run lint checks     |
+|                       |
+| 3. Docker Build       |
+| - Build Docker image  |
+| - Push to registry    |
+-------------------------
+      |
+      v
+-------------------------
+|   CD Pipeline         |
+|-----------------------|
+| 4. Deploy Stage       |
+| - Pull Docker image   |
+| - Deploy to Staging   |
+-------------------------
+      |
+      v
+[ Staging Server ]
+```
+
 Task 5: Explore in the Wild
 
     Open any popular open-source repo on GitHub (Kubernetes, React, FastAPI — pick one you know)
     Find their .github/workflows/ folder
     Open one workflow YAML file
     Write in your notes:
-        What triggers it?
-        How many jobs does it have?
-        What does it do? (best guess)
+What triggers it?
+```
+Runs on:
+push (when code is pushed)
+pull_request (when a PR is created or updated)
+
+This ensures every change is tested before merging.
+```
+How many jobs does it have?
+```
+1 main job (e.g., test)
+Inside the job, multiple steps run sequentially
+```
+What does it do? (best guess)
+```
+Sets up Python environment
+Installs dependencies
+Runs tests (pytest)
+checks formatting/linting
+
+Basically, it ensures the code is working and clean before deployment
+```
 
 Hints
 
