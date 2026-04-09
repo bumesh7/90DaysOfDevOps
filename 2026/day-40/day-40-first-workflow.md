@@ -84,6 +84,38 @@ Update `hello.yml` to also:
 
 Push again — watch the new run.
 
+```
+name: Hello Script
+
+on:
+  push:
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v4
+
+      - name: Greet hello
+        run: echo "Hello from git workflow"
+
+      - name: Print date and time
+        run: date
+
+      - name: List all the files
+        run: ls -la
+
+      - name: Print branch name
+        run: echo "The branch that triggered this run is $GITHUB_REF_NAME"
+
+      - name: Print OS name
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+
+```
+
 ---
 
 ### Task 5: Break It On Purpose
@@ -92,36 +124,10 @@ Push again — watch the new run.
 3. Fix it and push again
 
 Write in your notes: What does a failed pipeline look like? How do you read the error?
+```
+-> Go to Actions tab and check the latest commit and check the workflow logs
+```
+<img width="1401" height="930" alt="image" src="https://github.com/user-attachments/assets/1ebe4bad-8041-45d9-b905-24eba6ec87ce" />
+
 
 ---
-
-## Hints
-- Workflow files live in `.github/workflows/` and must end in `.yml`
-- `uses: actions/checkout@v4` checks out your code onto the runner
-- `run:` executes shell commands
-- GitHub provides built-in variables like `${{ github.ref_name }}` for branch name
-- Every push triggers a new run — check the Actions tab
-
----
-
-## Documentation
-Create `day-40-first-workflow.md` with:
-- Your workflow YAML
-- Screenshot of the green run
-- What each `on:`, `jobs:`, `steps:` key does (your own words)
-
----
-
-## Submission
-1. Add `day-40-first-workflow.md` to `2026/day-40/`
-2. Commit and push to your fork
-
----
-
-## Learn in Public
-Share your first green pipeline screenshot on LinkedIn. That green checkmark hits different.
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
