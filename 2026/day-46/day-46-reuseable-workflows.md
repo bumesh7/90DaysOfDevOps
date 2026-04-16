@@ -96,7 +96,9 @@ jobs:
         run: echo "Docker token is set: ${{ secrets.docker_token != '' }}"
 ```
 **Verify:** This file alone won't run — it needs a caller. That's next.
-
+```
+The flow wont run it needs caller
+```
 ---
 
 ### Task 3: Create a Caller Workflow
@@ -115,49 +117,29 @@ Create `.github/workflows/call-build.yml`:
    ```
 3. Push to `main` and watch it run
 ```
-$ vim reusable-build.yml
+$ vim call-build.yml
 
-name: Reusable Build Workflow
+name: Call Build Workflow
 
 on:
-  workflow_call:
-    inputs:
-      app_name:
-        description: "Name of the application"
-        required: true
-        type: string
-      environment:
-        description: "Deployment environment"
-        required: true
-        type: string
-        default: staging
-    secrets:
-      docker_token:
-        description: "Docker authentication token"
-        required: true
+  push:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/reusable-build.yml
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    with:
+      app_name: "my-web-app"
+      environment: "production"
 
-      # used to print inputs
-      - name: Print build info
-        run: |
-         echo "Building ${{ inputs.app_name }} for ${{ inputs.environment }}"
-
-      - name: Verify Docker token
-        run: |
-         echo "Docker token is set: ${{ secrets.docker_token != '' }}"
-
+    secrets:
+      docker_token: ${{ secrets.DOCKER_TOKEN }}
 ```
 **Verify:** In the Actions tab, do you see the caller triggering the reusable workflow? Click into the job — can you see the inputs printed?
-```
-The 
-```
+<img width="1839" height="906" alt="image" src="https://github.com/user-attachments/assets/cc2af02a-dbf3-4eea-a4bd-e9670837161b" />
+
 ---
 
 ### Task 4: Add Outputs to the Reusable Workflow
