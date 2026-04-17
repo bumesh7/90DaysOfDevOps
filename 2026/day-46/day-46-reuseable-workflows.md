@@ -146,11 +146,88 @@ jobs:
 Extend `reusable-build.yml`:
 1. Add an `outputs:` section that exposes a `build_version` value
 2. Inside the job, generate a version string (e.g., `v1.0-<short-sha>`) and set it as output
+```
+$ vim reusable-build.yml
+
+name: Reusable Build Workflow
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+        default: staging
+    secrets:
+      docker_token:
+        required: true
+    outputs:
+      build_version:
+        description: "Generated build version"
+        value: ${{ jobs.build.outputs.build_version }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    outputs:
+      build_version: ${{ steps.set_version.outputs.build_version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate version
+        id: set_version
+        run: |
+          VERSION="v1.0-${GITHUB_SHA::7}"
+          echo "build_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Print build info
+        run: echo "Building ${{ inputs.app_name }} for ${{ inputs.environment }}"
+
+      - name: Verify Docker token
+        run: echo "Docker token is set: ${{ secrets.docker_token != '' }}"
+```
 3. In your caller workflow, add a second job that:
    - Depends on the build job (`needs:`)
    - Reads and prints the `build_version` output
+```
+$ vim call-build.yml
 
+name: Call Build Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-build.yml
+
+    with:
+      app_name: "my-web-app"
+      environment: "production"
+
+    secrets:
+      docker_token: ${{ secrets.DOCKER_TOKEN }}
+
+  print-version:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Print build version
+        run: echo "Build version is ${{ needs.build.outputs.build_version }}"
+```
 **Verify:** Does the second job print the version from the reusable workflow?
+<img width="1833" height="652" alt="image" src="https://github.com/user-attachments/assets/87fd6b35-b082-4251-8ada-8cb504b2069c" />
+
+<img width="1833" height="652" alt="image" src="https://github.com/user-attachments/assets/6d3f394b-a0d4-4e41-900c-9d85e327624f" />
 
 ---
 
@@ -162,8 +239,66 @@ Create a **custom composite action** in your repo at `.github/actions/setup-and-
    - Print the current date and runner OS
    - Set an output called `greeted` with value `true`
 3. Use the composite action in a new workflow with `uses: ./.github/actions/setup-and-greet`
+```
+$ pwd => /home/umesh/Documents/github_workflows/github-actions-practice/.github/actions/setup-and-greet
 
+name: "Greet Action"
+
+inputs:
+  name:
+    required: true
+  language:
+    required: false
+    default: "en"
+
+outputs:
+  greeted:
+    value: ${{ steps.out.outputs.greeted }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Greet
+      run: echo "Hello ${{ inputs.name }}"
+      shell: bash
+
+    - name: Print info
+      run: |
+        date
+        echo $RUNNER_OS
+      shell: bash
+
+    - name: Set output
+      id: out
+      run: echo "greeted=true" >> $GITHUB_OUTPUT
+      shell: bash
+```
+```
+pwd => /home/umesh/Documents/github_workflows/github-actions-practice/.github/workflows/use-action.yml
+
+name: Use Action
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run action
+        id: greet
+        uses: ./.github/actions/setup-and-greet
+        with:
+          name: Umesh
+
+      - name: Check output
+        run: echo "Greeted: ${{ steps.greet.outputs.greeted }}" 
+```
 **Verify:** Does your custom action run and print the greeting?
+<img width="1841" height="919" alt="image" src="https://github.com/user-attachments/assets/6a323c2e-8ca4-4e25-9ba9-4405d61d0331" />
 
 ---
 
@@ -173,12 +308,11 @@ Fill this in your notes:
 | | Reusable Workflow | Composite Action |
 |---|---|---|
 | Triggered by | `workflow_call` | `uses:` in a step |
-| Can contain jobs? | ? | ? |
-| Can contain multiple steps? | ? | ? |
-| Lives where? | ? | ? |
-| Can accept secrets directly? | ? | ? |
-| Best for | ? | ? |
-
+| Can contain jobs? | Yes (multiple jobs) | No (only steps) |
+| Can contain multiple steps? | Yes | Yes |
+| Lives where? | `.github/workflows/` | `.github/actions/<action-name>/` |
+| Can accept secrets directly? | Yes | No (must be passed as inputs) |
+| Best for | Full CI/CD pipelines (build, test, deploy) | Reusable step logic (scripts, setup tasks) |
 ---
 
 ## Hints
@@ -189,26 +323,3 @@ Fill this in your notes:
 - A reusable workflow can be called by at most 20 unique caller workflows in a single run
 
 ---
-
-## Documentation
-Create `day-46-reusable-workflows.md` with:
-- Your reusable workflow and caller workflow YAML
-- Your composite action YAML
-- The comparison table from Task 6
-- Screenshot of the caller workflow triggering the reusable one
-
----
-
-## Submission
-1. Add `day-46-reusable-workflows.md` to `2026/day-46/`
-2. Commit and push to your fork
-
----
-
-## Learn in Public
-Share how you built your first reusable workflow on LinkedIn — this is a real production skill.
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
