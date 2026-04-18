@@ -29,8 +29,6 @@ CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
 ```
 $ vim docker-compose.yml
 
-version: "3.9"
-
 services:
   web:
     build: ./app
@@ -278,7 +276,12 @@ One-time scripts
 ### Task 4: Custom Dockerfiles in Compose
 1. Instead of using a pre-built image for your app, use `build:` in your compose file to build from a Dockerfile
 2. Make a code change in your app
+```
+update you app.py code
+```
 3. Rebuild and restart with one command
+
+<img width="1850" height="458" alt="image" src="https://github.com/user-attachments/assets/a5dbad13-cd76-49dc-b2fd-2c6ef3e3ff73" />
 
 ---
 
@@ -286,34 +289,113 @@ One-time scripts
 1. Define **explicit networks** in your compose file instead of relying on the default
 2. Define **named volumes** for database data
 3. Add **labels** to your services for better organization
+```
+services:
+  web:
+    build: ./app
+    container_name: flask_app
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+    environment:
+      - DB_HOST=db
+      - DB_NAME=mydb
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - REDIS_HOST=cache
+    networks:
+      - frontend
+      - backend
+    labels:
+      - "app=flask"
+      - "tier=frontend"
+      - "env=dev"
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    labels:
+      - "app=postgres"
+      - "tier=database"
+      - "env=dev"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  cache:
+    image: redis:7
+    container_name: redis_cache
+    networks:
+      - backend
+    labels:
+      - "app=redis"
+      - "tier=cache"
+      - "env=dev"
+
+# ✅ Named Volume
+volumes:
+  db_data:
+    name: postgres_data_volume
+
+# ✅ Explicit Networks
+networks:
+  frontend:
+    name: app_frontend_network
+  backend:
+    name: app_backend_network
+```
+```
+$ docker network ls
+$ docker volume ls
+$ docker network inspect app_backend_network
+```
+<img width="1145" height="490" alt="image" src="https://github.com/user-attachments/assets/a40defe6-a845-4168-ab6e-104951678983" />
+<img width="1119" height="390" alt="image" src="https://github.com/user-attachments/assets/69c4916d-acf9-4da7-a32c-93aa1b576d4f" />
+<img width="1093" height="188" alt="image" src="https://github.com/user-attachments/assets/35f542e9-1922-43e7-96c9-b46152e64275" />
 
 ---
 
 ### Task 6: Scaling (Bonus)
 1. Try scaling your web app to 3 replicas using `docker compose up --scale`
+```
+$ docker compose up -d --scale web=3
+```
+<img width="1855" height="158" alt="image" src="https://github.com/user-attachments/assets/b88c0f2b-33ad-4075-a365-758cfa92d0fa" />
+<img width="1855" height="208" alt="image" src="https://github.com/user-attachments/assets/b7a2aca6-3abc-415c-ba7e-8260e0d22954" />
+
 2. What happens? What breaks?
+```
+What breaks when scaling?
+
+Custom container names
+Prevent multiple instances
+Must be removed for scaling
+
+Port mapping
+
+Multiple containers cannot bind same host port
+```
 3. Write in your notes: Why doesn't simple scaling work with port mapping?
+```
+Because:
 
+Multiple containers cannot bind to the same host port
+Multiple containers cannot have custome container names
+```
 ---
-
-## Hints
-- Build from Dockerfile: `build: ./app`
-- Healthcheck: `healthcheck:` with `test`, `interval`, `timeout`
-- Rebuild: `docker compose up --build`
-- Scale: `docker compose up --scale web=3`
-
----
-
-## Submission
-1. Add your compose files, Dockerfiles, and `day-34-compose-advanced.md` to `2026/day-34/`
-2. Commit and push to your fork
-
----
-
-## Learn in Public
-Share your 3-service app stack running via Compose on LinkedIn.
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
