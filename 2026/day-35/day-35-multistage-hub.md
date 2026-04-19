@@ -55,7 +55,7 @@ WORKDIR /app
 
 COPY --from=builder /app/app.js .
 
-CMD ["node", "app.js"]
+CMD ["app.js"]
 
 ```
 ```
@@ -86,8 +86,37 @@ Multi-stage builds separate:
 1. Create a free account on [Docker Hub](https://hub.docker.com) (if you don't have one)
 2. Log in from your terminal
 3. Tag your image properly: `yourusername/image-name:tag`
+```
+$ docker tag hello-docker-multi:latest umesh4999/hello-docker:latest
+```
 4. Push it to Docker Hub
+```
+$ docker push umesh4999/hello-docker:latest
+```
 5. Pull it on a different machine (or after removing locally) to verify
+```
+$ docker rmi umesh4999/hello-docker:latest
+
+$ docker pull umesh4999/hello-docker:latest
+
+$ docker run yourusername/hello-docker:latest
+```
+```
+ex:
+
+docker build -t hello-docker-multi .
+
+docker tag hello-docker-multi umesh4999/hello-docker:latest
+
+docker push umesh4999/hello-docker:latest
+
+docker rmi umesh4999/hello-docker:latest
+
+docker pull umesh4999/hello-docker:latest
+
+docker run umesh4999/hello-docker:latest
+```
+<img width="1455" height="79" alt="image" src="https://github.com/user-attachments/assets/b78430e3-bf15-4765-8fb4-1f250c03607f" />
 
 ---
 
@@ -96,7 +125,19 @@ Multi-stage builds separate:
 2. Add a **description** to the repository
 3. Explore the **tags** tab — understand how versioning works
 4. Pull a specific tag vs `latest` — what happens?
+```
+docker build -t hello-docker-multi .
 
+docker tag hello-docker-multi umesh4999/hello-docker:v1
+
+docker push umesh4999/hello-docker:v1
+
+docker rmi umesh4999/hello-docker:v1
+
+docker pull umesh4999/hello-docker:v1
+
+docker run umesh4999/hello-docker:v1
+```
 ---
 
 ### Task 5: Image Best Practices
@@ -105,31 +146,37 @@ Apply these to one of your images and rebuild:
 2. **Don't run as root** — add a non-root USER in your Dockerfile
 3. Combine `RUN` commands to **reduce layers**
 4. Use **specific tags** for base images (not `latest`)
+```
+# Stage 1
+FROM node:18-alpine3.19 AS builder
+WORKDIR /app
+COPY app.js .
+
+# Stage 2
+FROM node:18-alpine3.19
+
+# create non-root user
+RUN adduser -D appuser
+
+WORKDIR /app
+COPY --from=builder /app/app.js .
+
+USER appuser
+
+CMD ["app.js"]
+```
+```
+$ docker tag build -t hello-docker-final:latest .
+
+$ docker tag hello-docker-final:latest umesh4999/hello-docker-final:v1
+
+$ docker push umesh4999/hello-docker-final:v1
+```
 
 Check the size before and after.
+```
+Previously it was 200MB and now it is 181MB
+```
+<img width="1022" height="161" alt="image" src="https://github.com/user-attachments/assets/5161d718-5edc-4183-aa97-818a10accd1e" />
 
 ---
-
-## Hints
-- Multi-stage: use `FROM ... AS builder` then `COPY --from=builder`
-- Login: `docker login`
-- Tag: `docker tag local-image:tag username/repo:tag`
-- Push: `docker push username/repo:tag`
-- Non-root user: `RUN adduser` + `USER`
-
----
-
-## Submission
-1. Add your Dockerfiles and `day-35-multistage-hub.md` to `2026/day-35/`
-2. Include the link to your Docker Hub repo
-3. Commit and push to your fork
-
----
-
-## Learn in Public
-Share your before/after image sizes on LinkedIn — the difference is always impressive.
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
