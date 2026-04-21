@@ -7,8 +7,76 @@ Create `.github/workflows/pr-lifecycle.yml` that triggers on `pull_request` with
    - Print the PR author: `${{ github.event.pull_request.user.login }}`
    - Print the source branch and target branch
 3. Add a conditional step that only runs when the PR is **merged** (closed + merged = true)
+```
+$ vim pr-lifecycle.yml
 
+name: PR Lifecycle Workflow
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  pr-info:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print PR Event Action
+        run: |
+          echo "Event Type: ${{ github.event.action }}"
+
+      - name: Print PR Title
+        run: |
+          echo "PR Title: ${{ github.event.pull_request.title }}"
+
+      - name: Print PR Author
+        run: |
+          echo "PR Author: ${{ github.event.pull_request.user.login }}"
+
+      - name: Print Source and Target Branch
+        run: |
+          echo "Source Branch: ${{ github.head_ref }}"
+          echo "Target Branch: ${{ github.base_ref }}"
+
+      - name: Run only when PR is merged
+        if: github.event.pull_request.merged == true
+        run: |
+          echo "PR has been merged!"
+
+```
+```
+$ git add .
+$ git commit -m "added pr-lifecycle.yml"
+$ git push origin main
+```
+```
+git checkout -b feature/test-pr
+echo "test change" >> test.txt
+git add .
+git commit -m "Test PR lifecycle"
+git push origin feature/test-pr
+```
+```
+Create Pull Request (GitHub UI)
+
+Go to your repo on GitHub
+Click Compare & Pull Request
+Create PR → triggers opened
+```
+<img width="1828" height="922" alt="image" src="https://github.com/user-attachments/assets/12eef04c-c70e-4005-ac7b-899426b8d6af" />
+
+```
+echo "another change" >> test.txt
+git add .
+git commit -m "Update PR"
+git push origin feature/test-pr
+```
 Test it: create a PR, push an update to it, then merge it. Watch the workflow fire each time with a different event type.
+```
+Merge PR
+```
+<img width="1828" height="922" alt="image" src="https://github.com/user-attachments/assets/0791a3df-b9cc-4061-964d-32da2f627473" />
+<img width="1828" height="922" alt="image" src="https://github.com/user-attachments/assets/f6ee63db-ef16-4b6d-98b2-a50972d2033d" />
 
 ---
 
@@ -24,8 +92,107 @@ Create `.github/workflows/pr-checks.yml` — a real-world PR gate:
 4. Add a job `pr-body-check` that:
    - Reads the PR body: `${{ github.event.pull_request.body }}`
    - Warns (but doesn't fail) if the PR description is empty
+```
+$ vim pr-checks.yml
+
+name: PR Validation Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  file-size-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for large files (>1MB)
+        run: |
+          echo "Checking file sizes..."
+          FAIL=0
+          while IFS= read -r file; do
+            if [ -f "$file" ]; then
+              size=$(stat -c%s "$file")
+              if [ "$size" -gt 1048576 ]; then
+                echo "❌ File too large: $file ($(($size / 1024)) KB)"
+                FAIL=1
+              fi
+            fi
+          done < <(git diff --name-only origin/${{ github.base_ref }})
+          
+          if [ "$FAIL" -eq 1 ]; then
+            echo "❌ Some files exceed 1MB limit"
+            exit 1
+          else
+            echo "✅ All files are within size limit"
+          fi
+
+  branch-name-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate branch name
+        run: |
+          echo "Branch: ${{ github.head_ref }}"
+          if [[ "${{ github.head_ref }}" =~ ^(feature|fix|docs)/.+ ]]; then
+            echo "✅ Branch name is valid"
+          else
+            echo "❌ Invalid branch name. Use feature/*, fix/*, or docs/*"
+            exit 1
+          fi
+
+  pr-body-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR description
+        run: |
+          if [ -z "${{ github.event.pull_request.body }}" ]; then
+            echo "⚠️ Warning: PR description is empty"
+          else
+            echo "✅ PR description is present"
+          fi
+```
+```
+Commit
+
+git add .
+git commit -m "Add PR validation workflow"
+git push origin main
+```
+```
+create bad branch the check will fail
+
+git checkout -b wrong-branch-name
+echo "test" > file.txt
+git add .
+git commit -m "Bad branch test"
+git push origin wrong-branch-name
+```
+```
+create valid branch as feature/*
+
+git checkout -b feature/test-validation
+echo "valid change" > valid.txt
+git add .
+git commit -m "Valid PR"
+git push origin feature/test-validation
+```
+```
+Create PR without description
+
+Warning appears (but workflow passes)
+```
 
 **Verify:** Open a PR from a badly named branch — does the check fail?
+```
+The error was due to workflow code issue now its fixed so it will run
+```
+<img width="1828" height="735" alt="image" src="https://github.com/user-attachments/assets/eab72a6c-5814-43b0-a4ee-f439d58f3a27" />
 
 ---
 
