@@ -235,10 +235,104 @@ Practice each of these modules by writing a playbook called `essential-modules.y
     line: 'TZ=Asia/Kolkata'
     create: true
 ```
-
 Create a `files/` directory with a sample `app.conf` file for the copy task. Run the playbook against all servers.
+```
+cd playbooks
+touch essential-modules.yml
+mkdir files
+touch files/app.conf
+```
+```
+cd files
+vim files/app.conf
+
+[app]
+name=myapp
+version=1.0
+```
+$ vim essential-modules.yml
+```
+- name: Practice essential Ansible modules
+  hosts: all
+  become: true
+
+  tasks:
+
+    # Install packages
+    - name: Install multiple packages
+      package:
+        name:
+          - git
+          - curl
+          - wget
+          - tree
+        state: present
+
+    # Ensure nginx is running
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+    # Copy config file
+    - name: Copy config file
+      copy:
+        src: files/app.conf
+        dest: /etc/app.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Create directory
+    - name: Create application directory
+      file:
+        path: /opt/myapp
+        state: directory
+        owner: ubuntu   # change if needed (ubuntu → ubuntu)
+        mode: '0755'
+
+    # Command module
+    - name: Check disk space
+      command: df -h
+      register: disk_output
+
+    - name: Print disk space
+      debug:
+        var: disk_output.stdout_lines
+
+    # Shell module
+    - name: Count running processes
+      shell: ps aux | wc -l
+      register: process_count
+
+    - name: Show process count
+      debug:
+        msg: "Total processes: {{ process_count.stdout }}"
+
+    # lineinfile module
+    - name: Set timezone in environment
+      lineinfile:
+        path: /etc/environment
+        line: 'TZ=Asia/Kolkata'
+        create: true
+```
+Run a playbook
+```
+ansible-playbook -i hosts.ini essential-modules.yml
+```
 
 **Document:** What is the difference between `command` and `shell`? When should you use each?
+```
+Command
+Runs simple commands
+No pipes (|), redirects (>), variables
+
+Shell
+Runs inside a shell (bash)
+Supports pipes, redirects, variables
+```
+<img width="1089" height="988" alt="image" src="https://github.com/user-attachments/assets/f9a2e628-d40d-4864-ac3f-ce1777d3edea" />
 
 ---
 
@@ -388,41 +482,4 @@ Watch the output -- each play targets a different group, and tasks run only on t
 
 **Verify:** Is Nginx only installed on web servers? Is MySQL only on db servers?
 
----
-
-## Hints
-- YAML indentation matters -- use 2 spaces, never tabs
-- `state: present` means "install if not already installed", `state: absent` means "remove"
-- `state: started` means "start if not running", `state: restarted` means "always restart"
-- Handlers run once at the end of all tasks, even if notified multiple times
-- `register` saves a task's output to a variable, `debug` prints it
-- `{{ inventory_hostname }}` is a built-in variable that returns the current host's name
-- `ansible-playbook --syntax-check playbook.yml` validates YAML syntax before running
-- Always test with `--check --diff` before applying to production
-
----
-
-## Documentation
-Create `day-69-playbooks.md` with:
-- Your first playbook with annotations explaining each section
-- All seven module examples with what each does
-- Screenshot of the playbook run showing changed vs ok tasks
-- Screenshot proving idempotency (second run shows all ok)
-- How handlers work with a before/after comparison
-- Difference between `--check`, `--diff`, and `-v`
-
----
-
-## Submission
-1. Add `day-69-playbooks.md` to `2026/day-69/`
-2. Commit and push to your fork
-
----
-
-## Learn in Public
-Share on LinkedIn: "Wrote my first Ansible playbooks today -- installed Nginx, managed services, copied files, and learned handlers. Ran the same playbook twice and it made zero changes the second time. Idempotency is beautiful."
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
 **TrainWithShubham**
