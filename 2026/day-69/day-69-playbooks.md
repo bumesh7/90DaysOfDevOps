@@ -379,13 +379,80 @@ Create `nginx-config.yml`:
 ```
 
 Create `files/nginx.conf` with a basic Nginx config.
+```
+cd playbooks
+touch nginx-config.yml
+touch files/nginx.conf
+```
+```
+vim files/nginx.conf
 
+events {}
+
+http {
+    server {
+        listen 80;
+
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+        }
+    }
+}
+```
+vim nginx-config.yml
+```
+- name: Configure Nginx with a custom config
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Install Nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: Deploy Nginx config
+      copy:
+        src: files/nginx.conf
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        mode: '0644'
+      notify: Restart Nginx
+
+    - name: Deploy custom index page
+      copy:
+        content: "<h1>Managed by Ansible</h1><p>Server: {{ inventory_hostname }}</p>"
+        dest: /usr/share/nginx/html/index.html
+
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+```
 Run the playbook:
+```
+ansible-playbook -i hosts.ini nginx-config.yml
+```
 - First run: handler triggers because the config file is new
+<img width="1200" height="537" alt="image" src="https://github.com/user-attachments/assets/d28f38b1-5799-480d-ad4a-7412302b97c6" />
+<img width="356" height="184" alt="image" src="https://github.com/user-attachments/assets/70808bcc-c8f5-4e78-8a90-2aa31d17abf0" />
+
 - Second run: handler does NOT trigger because nothing changed
+<img width="1178" height="472" alt="image" src="https://github.com/user-attachments/assets/84579fab-8141-42ca-a872-06cd4da0747f" />
 
 **Verify:** Run it twice and compare the output. Does the handler run both times?
-
+```
+First run → Handler runs (file changed)
+Second run → Handler does NOT run (no change)
+```
 ---
 
 ### Task 5: Dry Run, Diff, and Verbosity
@@ -395,17 +462,32 @@ Before running playbooks on production, always preview changes first.
 ```bash
 ansible-playbook install-nginx.yml --check
 ```
+```
+No files modified
+No services restarted
+No packages installed
+Only preview of changes
+```
 
 2. **Diff mode** -- shows the actual file differences:
 ```bash
 ansible-playbook nginx-config.yml --check --diff
 ```
-
+```
+old config
+new config
+exact lines changing
+```
 3. **Verbosity** -- increase output detail for debugging:
 ```bash
-ansible-playbook install-nginx.yml -v       # verbose
+ansible-playbook install-nginx.yml -v       # verbose 
 ansible-playbook install-nginx.yml -vv      # more verbose
 ansible-playbook install-nginx.yml -vvv     # connection debugging
+```
+```
+-v => task execution details
+-vv => module arguments, more execution info
+-vvv => SSH connection debugging, authentication issues, detailed troubleshooting
 ```
 
 4. **Limit to specific hosts:**
@@ -418,9 +500,17 @@ ansible-playbook install-nginx.yml --limit web-server
 ansible-playbook install-nginx.yml --list-hosts
 ansible-playbook install-nginx.yml --list-tasks
 ```
+<img width="1152" height="379" alt="image" src="https://github.com/user-attachments/assets/f10bac5c-dadb-4543-b6f8-528e7a918e1e" />
+
 
 **Document:** Why is `--check --diff` the most important flag combination for production use?
-
+```
+Preview changes safely
+See exactly what files will change
+Detect mistakes before production deployment
+Reduce downtime and configuration errors
+Review configuration updates before applying them
+```
 ---
 
 ### Task 6: Multiple Plays in One Playbook
@@ -433,7 +523,7 @@ Write `multi-play.yml` with separate plays for each server group:
   become: true
   tasks:
     - name: Install Nginx
-      yum:
+      package:
         name: nginx
         state: present
     - name: Start Nginx
@@ -447,7 +537,7 @@ Write `multi-play.yml` with separate plays for each server group:
   become: true
   tasks:
     - name: Install Node.js dependencies
-      yum:
+      package:
         name:
           - gcc
           - make
@@ -463,8 +553,8 @@ Write `multi-play.yml` with separate plays for each server group:
   become: true
   tasks:
     - name: Install MySQL client
-      yum:
-        name: mysql
+      package:
+        name: mysql-client
         state: present
     - name: Create data directory
       file:
@@ -475,11 +565,29 @@ Write `multi-play.yml` with separate plays for each server group:
 
 Run it:
 ```bash
-ansible-playbook multi-play.yml
+ansible-playbook -i hosts.ini multi-play.yml
+```
+modify hosts.ini so that you can use same server
+```
+[web]
+worker-node ansible_host=43.204.24.81 ansible_user=ubuntu
+
+[app]
+worker-node ansible_host=43.204.24.81 ansible_user=ubuntu
+
+[db]
+worker-node ansible_host=43.204.24.81 ansible_user=ubuntu
+
+[all:vars]
+ansible_ssh_private_key_file=/home/ubuntu/ansible-key
+ansible_python_interpreter=/usr/bin/python3
+ansible_host_key_checking=false
 ```
 
 Watch the output -- each play targets a different group, and tasks run only on the relevant hosts.
+<img width="1857" height="843" alt="image" src="https://github.com/user-attachments/assets/d2fd4b2b-bfc7-4ed7-a7fb-9f3dee24fc5c" />
 
 **Verify:** Is Nginx only installed on web servers? Is MySQL only on db servers?
+<img width="853" height="47" alt="image" src="https://github.com/user-attachments/assets/520646f9-f261-4eaa-b253-4a527a95a938" />
 
-**TrainWithShubham**
+<img width="1832" height="365" alt="image" src="https://github.com/user-attachments/assets/cf59a23d-6031-4f0c-8f17-8d507b24c01b" />
