@@ -117,7 +117,32 @@ ansible-galaxy init roles/webserver
 Explore the generated directory. Read the README.md that Galaxy creates.
 
 **Document:** What is the difference between `vars/main.yml` and `defaults/main.yml`?
+```
+defaults/main.yml
 
+Contains default values
+Easily overridden by:
+group_vars
+host_vars
+playbook variables
+extra vars (-e)
+Used for configurable settings
+
+example:
+http_port: 80
+app_name: my-app
+
+vars/main.yml
+
+Contains fixed/internal variables
+Hard to override (higher precedence than most variables)
+Used for internal logic or constants
+
+example:
+nginx_package: nginx
+config_path: /etc/nginx/nginx.conf
+
+```
 ---
 
 ### Task 3: Build a Custom Webserver Role
@@ -135,9 +160,15 @@ max_connections: 512
 ```yaml
 ---
 - name: Install Nginx
-  yum:
+  apt:
     name: nginx
     state: present
+
+- name: Remove old nginx config
+  file:
+    path: /etc/nginx/conf.d/terraweek-app.conf
+    state: absent
+  notify: Restart Nginx
 
 - name: Deploy Nginx config
   template:
@@ -194,7 +225,55 @@ max_connections: 512
 
 Create the `vhost.conf.j2` and `nginx.conf.j2` templates yourself based on what you learned in Task 1.
 
-Now call the role from a playbook `site.yml`:
+vim roles/webserver/templates/index.html.j2
+```
+<h1>{{ app_name }}</h1>
+<p>Server: {{ ansible_facts['hostname'] }}</p>
+<p>IP: {{ ansible_facts['default_ipv4']['address'] }}</p>
+<p>Environment: {{ app_env | default('development') }}</p>
+<p>Managed by Ansible</p>
+```
+```
+vim roles/webserver/templates/vhost.conf.j2
+
+server {
+    listen {{ http_port }};
+    server_name {{ ansible_facts['hostname'] }};
+
+    root /var/www/{{ app_name }};
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    access_log /var/log/nginx/{{ app_name }}_access.log;
+    error_log /var/log/nginx/{{ app_name }}_error.log;
+}
+```
+vim roles/webserver/templates/nginx.conf.j2
+```
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+
+events {
+    worker_connections {{ max_connections }};
+}
+
+http {
+    sendfile on;
+    tcp_nopush on;
+    keepalive_timeout 65;
+
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+```
+
+Now call the role from a playbook `site-roles.yml`:
 ```yaml
 ---
 - name: Configure web servers
@@ -213,6 +292,16 @@ ansible-playbook site.yml
 ```
 
 **Verify:** Curl the web server. Does the custom page load?
+```
+curl http://43.204.24.81
+
+<h1>terraweek</h1>
+<p>Server: ip-172-31-37-27</p>
+<p>IP: 172.31.37.27</p>
+<p>Environment: development</p>
+<p>Managed by Ansible</p>
+```
+<img width="1409" height="735" alt="image" src="https://github.com/user-attachments/assets/d492a2e0-b896-4b43-a8ba-946b4b3b9519" />
 
 ---
 
