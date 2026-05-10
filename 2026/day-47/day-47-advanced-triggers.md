@@ -203,12 +203,62 @@ Create `.github/workflows/scheduled-tasks.yml`:
 3. In the job, print which schedule triggered using `${{ github.event.schedule }}`
 4. Add a step that acts as a **health check** — curl a URL and check the response code
 
+vim shedule-tasks.yml
+```
+name: Scheduled Tasks
+
+on:
+  schedule:
+    # Every Monday at 2:30 AM UTC
+    - cron: '30 2 * * 1'
+    # Every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  scheduled-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print trigger info
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "Triggered by schedule: ${{ github.event.schedule }}"
+          else
+            echo "Triggered manually via workflow_dispatch"
+          fi
+
+      - name: Health check (HTTP status)
+        run: |
+          URL="https://example.com"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          echo "HTTP Status: $STATUS"
+
+          if [ "$STATUS" -ne 200 ]; then
+            echo "Health check failed!"
+            exit 1
+          fi
+
+          echo "Health check passed!"
+```
 Write in your notes:
 - The cron expression for: every weekday at 9 AM IST
+```
+30 3 * * 1-5
+```
 - The cron expression for: first day of every month at midnight
+```
+0 0 1 * *
+```
 - Why GitHub says scheduled workflows may be delayed or skipped on inactive repos
-
+```
+Shared infrastructure load: Scheduled jobs run on shared runners, so heavy global usage can delay execution.
+No strict guarantees: Cron triggers are “best effort,” not real-time.
+Inactive repositories: If a repo has no activity for ~60 days, GitHub may disable scheduled workflows to conserve resources.
+Queueing delays: Even active repos may experience slight delays due to job queue backlogs.
+```
 **Important:** Also add `workflow_dispatch` so you can test it manually without waiting for the schedule.
+<img width="1846" height="674" alt="image" src="https://github.com/user-attachments/assets/a9d4839b-346e-42f4-8496-edb4adba346f" />
 
 ---
 
@@ -222,22 +272,110 @@ Create `.github/workflows/smart-triggers.yml`:
          - 'src/**'
          - 'app/**'
    ```
+vim smart-trigger.yml
+```
+name: Smart Trigger - Paths
+
+on:
+  push:
+    branches:
+      - main
+      - release/*
+    paths:
+      - 'src/**'
+      - 'app/**'
+
+jobs:
+  run-on-code-change:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Triggered because src/ or app/ changed"
+```
+```
+mkdir -p src
+echo "code" >> src/app.js
+git add .
+git commit -m "code change"
+git push
+
+Expected result:
+
+smart-triggers.yml → ✅ RUNS
+ignore-docs.yml → ✅ RUNS
+```
 2. Add `paths-ignore` in a second workflow that skips runs when only docs change:
    ```yaml
    paths-ignore:
      - '*.md'
      - 'docs/**'
    ```
+vim ignore-docs.yml
+```
+name: Ignore Docs Changes
+
+on:
+  push:
+    branches:
+      - main
+      - release/*
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+
+jobs:
+  skip-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Triggered because change is NOT only docs"
+```
+```
+echo "update" >> README.md
+git add .
+git commit -m "docs change"
+git push
+
+Expected result:
+
+ignore-docs.yml → ❌ SKIPPED
+smart-triggers.yml → ❌ SKIPPED
+```
 3. Add branch filters to only trigger on `main` and `release/*` branches
 4. Test it: push a change to a `.md` file — does the workflow skip?
+```
 
+```
 Write in your notes: When would you use `paths` vs `paths-ignore`?
-
+```
+paths → Run only if these files change
+paths-ignore → Run unless only these files change
+```
 ---
 
 ### Task 5: `workflow_run` — Chain Workflows Together
 Create two workflows:
 1. `.github/workflows/tests.yml` — runs tests on every push
+```
+name: Run Tests
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        run: |
+          echo "Running tests..."
+          # Replace with real test command
+          echo "All tests passed!"
+```
+
+
 2. `.github/workflows/deploy-after-tests.yml` — triggers **only after** `tests.yml` completes successfully:
    ```yaml
    on:
@@ -245,12 +383,45 @@ Create two workflows:
        workflows: ["Run Tests"]
        types: [completed]
    ```
+```
+name: Deploy After Tests
+
+on:
+  workflow_run:
+    workflows: ["Run Tests"]
+    types: [completed]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check test result
+        run: |
+          echo "Test workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
+
+          if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+            echo "Tests failed. Skipping deployment."
+            exit 1
+          fi
+
+          echo "Tests passed. Proceeding with deployment..."
+
+      - name: Deploy step
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        run: |
+          echo "Deploying application..."
+```
+
+
 3. In the deploy workflow, add a conditional:
    - Only proceed if the triggering workflow **succeeded** (`${{ github.event.workflow_run.conclusion == 'success' }}`)
    - Print a warning and exit if it failed
 
 **Verify:** Push a commit — does the test workflow run first, then trigger the deploy workflow?
-
+```
+Yes first test workflow ran.
+```
 ---
 
 ### Task 6: `repository_dispatch` — External Event Triggers
@@ -263,40 +434,51 @@ Create two workflows:
      -f event_type=deploy-request \
      -f client_payload='{"environment":"production"}'
    ```
+```
+name: External Trigger
 
+on:
+  repository_dispatch:
+    types: [deploy-request]
+
+jobs:
+  handle-dispatch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print event info
+        run: |
+          echo "Event type: ${{ github.event.action }}"
+          echo "Environment: ${{ github.event.client_payload.environment }}"
+```
 Write in your notes: When would an external system (like a Slack bot or monitoring tool) trigger a pipeline?
+```
+External systems trigger pipelines when something outside GitHub needs to start automation. Examples:
 
+🚨 Monitoring tools (e.g., downtime alert)
+→ Trigger rollback or restart deployment
+💬 Slack bot / ChatOps
+→ /deploy production triggers a release
+🧪 External CI systems
+→ After integration tests in another platform
+📦 Artifact systems
+→ New build available → trigger deploy
+🔐 Security scanners
+→ Vulnerability found → trigger patch workflow
+```
+```
+gh auth login
+? What account do you want to log into? GitHub.com
+? What is your preferred protocol for Git operations on this host? HTTPS
+? How would you like to authenticate GitHub CLI? Paste an authentication token
+Tip: you can generate a Personal Access Token here https://github.com/settings/tokens
+The minimum required scopes are 'repo', 'read:org', 'workflow'.
+? Paste your authentication token: ****************************************
+- gh config set -h github.com git_protocol https
+✓ Configured git protocol
+✓ Logged in as bumesh7
+! You were already logged in to this account
+
+```
 ---
 
-## Hints
-- PR merge check: `if: github.event.pull_request.merged == true`
-- Cron syntax: `minute hour day-of-month month day-of-week`
-- Scheduled workflows only run on the **default branch**
-- `workflow_run` gives you access to the triggering workflow's conclusion and artifacts
-- `repository_dispatch` requires a personal access token with `repo` scope
-- Path filters use glob patterns — `**` matches nested directories
-
----
-
-## Documentation
-Create `day-47-advanced-triggers.md` with:
-- Your workflow YAML files
-- The cron expressions from Task 3
-- Screenshot of the PR checks running on a pull request
-- Explanation of `workflow_run` vs `workflow_call` in your own words
-
----
-
-## Submission
-1. Add `day-47-advanced-triggers.md` to `2026/day-47/`
-2. Commit and push to your fork
-
----
-
-## Learn in Public
-Share your PR validation workflow on LinkedIn — automated PR gates are a real DevOps flex.
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
