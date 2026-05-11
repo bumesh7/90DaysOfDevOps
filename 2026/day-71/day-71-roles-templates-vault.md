@@ -313,6 +313,8 @@ Ansible Galaxy is a marketplace of pre-built roles.
 ansible-galaxy search nginx --platforms EL
 ansible-galaxy search mysql
 ```
+<img width="1478" height="993" alt="image" src="https://github.com/user-attachments/assets/488f50e1-cefd-4d14-8d97-4fabb87f0ac0" />
+
 
 2. **Install a role from Galaxy:**
 ```bash
@@ -323,6 +325,7 @@ ansible-galaxy install geerlingguy.docker
 ```bash
 ansible-galaxy list
 ```
+<img width="1108" height="237" alt="image" src="https://github.com/user-attachments/assets/b53e9af8-0de7-424c-acd0-4cecaf631e36" />
 
 4. **Use the installed role** -- create `docker-setup.yml`:
 ```yaml
@@ -335,6 +338,7 @@ ansible-galaxy list
 ```
 
 Run it -- Docker gets installed with a single role call.
+<img width="1187" height="739" alt="image" src="https://github.com/user-attachments/assets/132f63d1-0a91-4231-bb44-f036ba5bfd46" />
 
 5. **Use a requirements file** for managing multiple roles. Create `requirements.yml`:
 ```yaml
@@ -349,9 +353,16 @@ Install all at once:
 ```bash
 ansible-galaxy install -r requirements.yml
 ```
+<img width="1149" height="182" alt="image" src="https://github.com/user-attachments/assets/b366b1b0-7c01-4d97-a806-bb550b177fa4" />
 
 **Document:** Why use a `requirements.yml` instead of installing roles manually?
+```
+Ensures same versions of roles across all environments
+All dependencies listed in one file
+Easier to update, track, and review
 
+one command install everything = ansible-galaxy install -r requirements.yml
+```
 ---
 
 ### Task 5: Ansible Vault -- Encrypt Secrets
@@ -369,6 +380,8 @@ vault_api_key: sk-abc123xyz789
 ```
 Save and exit. Open the file with `cat` -- it is fully encrypted.
 
+<img width="1158" height="292" alt="image" src="https://github.com/user-attachments/assets/65ebfdea-98ec-4a53-b3b7-96d173b07edf" />
+
 2. **Edit an encrypted file:**
 ```bash
 ansible-vault edit group_vars/db/vault.yml
@@ -378,6 +391,7 @@ ansible-vault edit group_vars/db/vault.yml
 ```bash
 ansible-vault view group_vars/db/vault.yml
 ```
+<img width="1151" height="151" alt="image" src="https://github.com/user-attachments/assets/0124de2c-4679-4432-91b0-f92732e914d6" />
 
 4. **Encrypt an existing file:**
 ```bash
@@ -399,8 +413,9 @@ ansible-vault encrypt group_vars/db/secrets.yml
 
 Run with the vault password:
 ```bash
-ansible-playbook db-setup.yml --ask-vault-pass
+ansible-playbook -i ../nventory.ini db-setup.yml --ask-vault-pass
 ```
+<img width="1200" height="270" alt="image" src="https://github.com/user-attachments/assets/df78fbfb-fac7-48bd-bb2b-51f76edab414" />
 
 6. **Use a password file** (better for CI/CD):
 ```bash
@@ -417,12 +432,44 @@ Or set it in `ansible.cfg`:
 vault_password_file = .vault_pass
 ```
 
-**Document:** Why is `--vault-password-file` better than `--ask-vault-pass` for automated pipelines?
+```
+cd ~/ansible-practice/playbooks
 
+ls -l .vault_pass
+echo "YourVaultPassword" > .vault_pass
+chmod 600 .vault_pass
+
+ansible-vault encrypt group_vars/db/vault.yml --vault-password-file .vault_pass
+
+cat group_vars/db/vault.yml
+
+ansible-vault view group_vars/db/vault.yml --vault-password-file .vault_pass
+
+ansible-playbook -i ../inventory.ini db-setup.yml --vault-password-file .vault_pass
+```
+<img width="1313" height="571" alt="image" src="https://github.com/user-attachments/assets/17decee9-e2a7-4969-bdcb-6bb4db9f5266" />
+
+**Document:** Why is `--vault-password-file` better than `--ask-vault-pass` for automated pipelines?
+```
+--ask-vault-pass prompts for input
+CI/CD systems (Jenkins, GitHub Actions, GitLab CI, etc.) cannot type passwords
+```
 ---
 
 ### Task 6: Combine Roles, Templates, and Vault
 Write a complete `site.yml` that uses everything you learned today:
+```
+playbooks/
+├── site.yml
+├── templates/
+│   └── db-config.j2
+├── group_vars/
+│   └── db/
+│       └── vault.yml   (encrypted)
+├── .vault_pass
+```
+
+vim site-1.yml
 
 ```yaml
 ---
@@ -464,48 +511,24 @@ DB_ROOT_PASSWORD={{ vault_db_root_password }}
 
 Run:
 ```bash
-ansible-playbook site.yml
+ansible-playbook site-1.yml
 ```
+use only one server at a time 
+```
+ansible-playbook -i ../inventory.ini site-1.yml \
+  --limit db \
+  --vault-password-file .vault_pass
+```
+<img width="1828" height="682" alt="image" src="https://github.com/user-attachments/assets/a518aca2-9736-4933-ade4-4cd76afe5443" />
 
 **Verify:** SSH into the db server and check `/etc/db-config.env`. Are the secrets rendered correctly? Is the file permission `600`?
+```
+ssh -i /home/ubuntu/ansible-key ubuntu@43.204.24.81
+
+sudo ls -l /etc/db-config.env
+
+sudo cat /etc/db-config.env
+```
+<img width="835" height="172" alt="image" src="https://github.com/user-attachments/assets/bcc95dc2-2c83-45e9-8dc9-a7a4c533d5a3" />
 
 ---
-
-## Hints
-- Templates use `.j2` extension by convention (Jinja2)
-- In templates, `{{ variable }}` renders a value, `{% if %}` is a conditional, `{% for %}` is a loop
-- `| default(value)` is a Jinja2 filter that provides a fallback if the variable is undefined
-- Role `defaults/` has the lowest priority -- callers can easily override these values
-- Role `vars/` has high priority -- use it for values that should not be overridden
-- `ansible-galaxy init` creates the full skeleton, but you can delete directories you don't use
-- Vault-encrypted files are normal YAML after decryption -- Ansible handles it transparently
-- Never commit `.vault_pass` to Git -- always add it to `.gitignore`
-- Use `ansible-vault encrypt_string` to encrypt a single value inline instead of a whole file
-
----
-
-## Documentation
-Create `day-71-roles-templates-vault.md` with:
-- Your webserver role directory structure
-- The Jinja2 templates you created and the rendered output
-- Screenshot of the role running successfully
-- How you installed and used a Galaxy role
-- Vault workflow: create, edit, view, encrypt, decrypt
-- Screenshot of the encrypted vault file contents
-- When to use roles vs playbooks vs ad-hoc commands
-
----
-
-## Submission
-1. Add `day-71-roles-templates-vault.md` to `2026/day-71/`
-2. Commit and push to your fork
-
----
-
-## Learn in Public
-Share on LinkedIn: "Built my first Ansible role today -- organized tasks, templates, handlers, and defaults into a reusable structure. Used Galaxy to install community roles, Jinja2 for dynamic configs, and Vault to encrypt secrets. This is production-grade automation."
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
