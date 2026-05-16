@@ -67,11 +67,13 @@ terraform plan                              # Uses terraform.tfvars automaticall
 ```bash
 terraform plan -var-file="prod.tfvars"      # Uses prod.tfvars
 ```
+<img width="1053" height="500" alt="image" src="https://github.com/user-attachments/assets/8598cb33-8fa2-40e4-89fb-52c4dffa61a2" />
 
 5. Override with CLI:
 ```bash
 terraform plan -var="instance_type=t2.nano"  # CLI overrides everything
 ```
+<img width="1100" height="321" alt="image" src="https://github.com/user-attachments/assets/8027ad9f-cb43-4eea-a6c3-b2405e11065f" />
 
 6. Set an environment variable:
 ```bash
@@ -80,7 +82,19 @@ terraform plan                              # env var overrides default but not 
 ```
 
 **Document:** Write the variable precedence order from lowest to highest priority.
-
+```
+variables.tf (default)
+↓
+TF_VAR_* (environment variables)
+↓
+terraform.tfvars
+↓
+*.auto.tfvars
+↓
+-var-file
+↓
+-var (CLI)  [highiest]
+```
 ---
 
 ### Task 3: Add Outputs
