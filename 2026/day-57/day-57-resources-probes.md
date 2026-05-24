@@ -127,10 +127,59 @@ So the Pod remains in Pending state forever until resources become available
 A liveness probe detects stuck containers. If it fails, Kubernetes restarts the container.
 
 1. Write a Pod manifest with a busybox container that creates `/tmp/healthy` on startup, then deletes it after 30 seconds
-2. Add a liveness probe using `exec` that runs `cat /tmp/healthy`, with `periodSeconds: 5` and `failureThreshold: 3`
-3. After the file is deleted, 3 consecutive failures trigger a restart. Watch with `kubectl get pod -w`
 
+vim liveness-demo.yml
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-demo
+spec:
+  containers:
+    - name: busybox
+      image: busybox
+      command:
+        - /bin/sh
+        - -c
+        - |
+          touch /tmp/healthy
+          echo "Container is healthy"
+          sleep 30
+          rm -f /tmp/healthy
+          echo "Health file removed"
+          sleep 600
+
+      livenessProbe:
+        exec:
+          command:
+            - cat
+            - /tmp/healthy
+        periodSeconds: 5
+        failureThreshold: 3
+```
+2. Add a liveness probe using `exec` that runs `cat /tmp/healthy`, with `periodSeconds: 5` and `failureThreshold: 3`
+```
+kubectl apply -f liveness-demo.yaml
+
+kubectl get pod -w
+
+kubectl describe pod liveness-demo
+```
+2. After the file is deleted, 3 consecutive failures trigger a restart. Watch with `kubectl get pod -w`
+```
+Container starts
+/tmp/healthy exists
+Liveness probe succeeds every 5 seconds
+After 30 seconds, file is deleted
+Probe starts failing
+After 3 consecutive failures:
+Kubernetes restarts the container
+```
 **Verify:** How many times has the container restarted?
+```
+Restarted 3 times
+```
+<img width="590" height="111" alt="image" src="https://github.com/user-attachments/assets/822b65ff-c16e-4994-9304-c323686185c3" />
 
 ---
 
@@ -138,61 +187,143 @@ A liveness probe detects stuck containers. If it fails, Kubernetes restarts the 
 A readiness probe controls traffic. Failure removes the Pod from Service endpoints but does NOT restart it.
 
 1. Write a Pod manifest with nginx and a `readinessProbe` using `httpGet` on path `/` port `80`
+
+vim rediness-demo.yml
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readiness-demo
+  labels:
+    app: nginx
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      readinessProbe:
+        httpGet:
+          path: /
+          port: 80
+        periodSeconds: 5
+```
 2. Expose it as a Service: `kubectl expose pod <name> --port=80 --name=readiness-svc`
+```
+kubectl apply -f readiness-demo.yaml
+
+kubectl expose pod readiness-demo --port=80 --name=readiness-svc
+```
 3. Check `kubectl get endpoints readiness-svc` — the Pod IP is listed
+```
+kubectl get endpoints readiness-svc
+```
+<img width="983" height="122" alt="image" src="https://github.com/user-attachments/assets/7a977ba8-2963-47dc-8434-50b51245f08c" />
+
 4. Break the probe: `kubectl exec <pod> -- rm /usr/share/nginx/html/index.html`
+```
+kubectl exec readiness-demo -- rm /usr/share/nginx/html/index.html
+
+kubectl get pod readiness-demo
+
+kubectl get endpoints readiness-svc
+```
 5. Wait 15 seconds — Pod shows `0/1` READY, endpoints are empty, but the container is NOT restarted
+<img width="981" height="199" alt="image" src="https://github.com/user-attachments/assets/ec4d5a11-9665-4e52-b44c-64eee555bd97" />
 
 **Verify:** When readiness failed, was the container restarted?
+```
+No, the container was NOT restarted.
 
+Readiness probes only control:
+
+whether a Pod receives traffic
+
+They do not restart containers.
+
+So:
+
+Pod becomes 0/1 READY
+Service stops sending traffic
+Container keeps running normally
+```
 ---
 
 ### Task 6: Startup Probe
 A startup probe gives slow-starting containers extra time. While it runs, liveness and readiness probes are disabled.
 
 1. Write a Pod manifest where the container takes 20 seconds to start (e.g., `sleep 20 && touch /tmp/started`)
+
+vim startup-demo.yml
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: startup-demo
+spec:
+  containers:
+    - name: busybox
+      image: busybox
+      command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Starting application..."
+          sleep 20
+          touch /tmp/started
+          echo "Application started"
+          sleep 600
+
+      startupProbe:
+        exec:
+          command:
+            - cat
+            - /tmp/started
+        periodSeconds: 5
+        failureThreshold: 12
+
+      livenessProbe:
+        exec:
+          command:
+            - cat
+            - /tmp/started
+        periodSeconds: 5
+```
 2. Add a `startupProbe` checking for `/tmp/started` with `periodSeconds: 5` and `failureThreshold: 12` (60 second budget)
 3. Add a `livenessProbe` that checks the same file — it only kicks in after startup succeeds
+```
+kubectl apply -f startup-demo.yaml
 
+kubectl get pods -w
+```
 **Verify:** What would happen if `failureThreshold` were 2 instead of 12?
+```
+Container starts
+App sleeps for 20 seconds
 
+During this time:
+startupProbe keeps checking /tmp/started
+livenessProbe is disabled
+
+After 20 seconds:
+file is created
+startup probe succeeds
+liveness probe becomes active
+
+The startup probe gives the app enough time to initialize safely.
+```
 ---
 
 ### Task 7: Clean Up
 Delete all pods and services you created.
 
+```
+kubectl delete pod huge-request-pod \
+liveness-demo \
+memory-stress \
+readiness-demo \
+resource-demo \
+startup-demo
+
+kubectl delete svc readiness-svc
+```
 ---
 
-## Hints
-- CPU is compressible (throttled); memory is incompressible (OOMKilled)
-- CPU: `1` = 1 core = `1000m`. Memory: `Mi` (mebibytes), `Gi` (gibibytes)
-- QoS: Guaranteed (requests == limits), Burstable (requests < limits), BestEffort (none set)
-- Probe types: `httpGet`, `exec`, `tcpSocket`
-- Liveness failure = restart. Readiness failure = remove from endpoints. Startup failure = kill.
-- `initialDelaySeconds`, `periodSeconds`, `failureThreshold` control probe timing
-- Exit code 137 = OOMKilled (128 + SIGKILL)
-
----
-
-## Documentation
-Create `day-57-resources-probes.md` with:
-- Requests vs limits (scheduling vs enforcement)
-- What happens when CPU or memory limits are exceeded
-- Liveness vs readiness vs startup probes
-- Screenshots of OOMKilled, Pending, and probe events
-
----
-
-## Submission
-1. Add `day-57-resources-probes.md` to `2026/day-57/`
-2. Commit and push to your fork
-
----
-
-## Learn in Public
-Share on LinkedIn: "Set resource requests and limits in Kubernetes today, watched a pod get OOMKilled, and added liveness, readiness, and startup probes for self-healing."
-
-`#90DaysOfDevOps` `#DevOpsKaJosh` `#TrainWithShubham`
-
-Happy Learning!
-**TrainWithShubham**
